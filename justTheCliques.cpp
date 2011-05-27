@@ -10,13 +10,19 @@ using namespace std;
 int option_minCliqueSize = 3;
 
 int main(int argc, char **argv) {
-	unless (argc - optind == 1) {
-		cerr << "Usage: edge_list" << endl;
+	unless (argc ==3 || argc == 2 ) {
+		cerr << "Usage: edge_list [k]" << endl;
 		exit(1);
 	}
-	const char * edgeListFileName = argv[optind];
+	const char * edgeListFileName = argv[1];
+	const int k = argc == 2 ? 3 : atoi(argv[2]);
+	if(k < 3) {
+		cerr << "Usage: edge_list [k]       where k > = 3" << endl;
+		exit(1);
+	}
+
 
 	auto_ptr<shmGraphRaw::ReadableShmGraphTemplate<shmGraphRaw::PlainMem> > g (shmGraphRaw::loadEdgeList<shmGraphRaw::PlainMem>(edgeListFileName));
-	cliques::cliquesToDirectory(g.get(), "acp2_results", 3);
+	cliques::cliquesToStdout(g.get(), k);
 
 }

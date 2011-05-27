@@ -132,13 +132,13 @@ void cliquesWorker(const SimpleIntGraph & g, CliqueFunctionAdaptor &cliquesOut, 
 
 
 
-void cliquesToDirectory(SimpleIntGraph g_, const string &outputDirectory, unsigned int minimumSize /* = 3*/ ) {
+void cliquesToStdout(SimpleIntGraph g_, unsigned int minimumSize /* = 3*/ ) {
 
 	CliquesToStdout cliquesOut(g_);
 
 	findCliques<CliquesToStdout>(g_, cliquesOut, minimumSize);
 
-	cerr << cliquesOut.n << " cliQues found" << endl;
+	cerr << cliquesOut.n << " cliques found" << endl;
 }
 
 CliquesVector::CliquesVector() /*: CliqueSink(_g, fileName)*/ {

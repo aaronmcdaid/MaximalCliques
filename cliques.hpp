@@ -29,7 +29,7 @@ struct CliqueFunctionAdaptor {
 
 template <class T> void findCliques(const SimpleIntGraph &, T &cliquesOut, unsigned int minimumSize);
 void cliquesForOneNode(const SimpleIntGraph &g, CliqueFunctionAdaptor &cliquesOut, int minimumSize, V v);
-void cliquesToDirectory          (SimpleIntGraph, const string &outputDirectory, unsigned int minimumSize); // You're not allowed to ask for the 2-cliques
+void cliquesToStdout          (SimpleIntGraph, unsigned int minimumSize); // You're not allowed to ask for the 2-cliques
 
 template<typename T>
 struct CliqueFunctionAdaptor_ : CliqueFunctionAdaptor {
