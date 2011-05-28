@@ -97,6 +97,7 @@ class StringArray {
 public:
 	virtual const char * operator[] (StrH s) const = 0;
 	virtual StrH StringToStringId(const char *s) const = 0;
+	virtual ~StringArray() {}
 };
 
 class ReadableShmGraphBase {
