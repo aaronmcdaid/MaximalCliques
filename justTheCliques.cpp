@@ -25,7 +25,7 @@ int main(int argc, char **argv) {
 
 	auto_ptr<shmGraphRaw::ReadableShmGraphTemplate<shmGraphRaw::PlainMem> > g (shmGraphRaw::loadEdgeList<shmGraphRaw::PlainMem>(edgeListFileName));
 	cerr << "Network loaded"
-	       << " after " << (clock() / CLOCKS_PER_SEC) << " seconds. "
+	       << " after " << (double(clock()) / CLOCKS_PER_SEC) << " seconds. "
 		<< g->numNodes() << " nodes and " << g->numRels() << " edges."
 	       << endl;
 	cliques::cliquesToStdout(g.get(), k);
