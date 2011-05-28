@@ -21,28 +21,6 @@ void cliquesForOneNode(const SimpleIntGraph &g, CliqueFunctionAdaptor &cliquesOu
 	// copy those below the split into Not
 	// copy those above the split into Candidates
 	// there shouldn't ever be a neighbour equal to the split, this'd mean a self-loop
-/*
-	std :: vector<int32_t> neighbours_of_v;
-	{
-		const std :: vector<int32_t> & neigh_rels = g->get_plain_graph()->neighbouring_rels_in_order(v);
-		if(verbose) PP2(neigh_rels.size(), g->degree(v));
-		assert((int)neigh_rels.size() == g->degree(v));
-		for(size_t x = 0; x < neigh_rels.size(); x++) {
-			const int32_t relId = neigh_rels.at(x);
-			if(verbose) PP(relId);
-			const std :: pair <int32_t, int32_t> eps = g->get_plain_graph()->EndPoints(relId);
-			if(verbose) PP3(v, eps.first, eps.second);
-			if(eps.first == v) {
-				neighbours_of_v.push_back(eps.second);
-			} else {
-				assert(eps.second == v);
-				neighbours_of_v.push_back(eps.first);
-			}
-		}
-		sort(neighbours_of_v.begin(), neighbours_of_v.end());
-	}
-	assert(int(neighbours_of_v.size()) == g->degree(v));
-*/
 	{
 		graph :: neighbouring_node_id_iterator ns(g->get_plain_graph(), v);
 		int32_t last_neighbour_id = -1;
@@ -68,37 +46,20 @@ void cliquesForOneNode(const SimpleIntGraph &g, CliqueFunctionAdaptor &cliquesOu
 static inline void tryCandidate (const SimpleIntGraph & g, CliqueFunctionAdaptor &cliquesOut, unsigned int minimumSize, vector<V> & Compsub, const list<V> & Not, const list<V> & Candidates, const V selected) {
 	Compsub.push_back(selected);
 
-	list<V> NotNew;
-	list<V> CandidatesNew;
-
-	vector<int32_t> neighbours_of_selected;
+	list<V> CandidatesNew_;
+	list<V> NotNew_;
 	{
-		const std :: vector<int32_t> & neigh_rels = g->get_plain_graph()->neighbouring_rels_in_order(selected);
-		if(verbose) PP2(neigh_rels.size(), g->degree(selected));
-		assert((int)neigh_rels.size() == g->degree(selected));
-		for(size_t x = 0; x < neigh_rels.size(); x++) {
-			const int32_t relId = neigh_rels.at(x);
-			if(verbose) PP(relId);
-			const std :: pair <int32_t, int32_t> eps = g->get_plain_graph()->EndPoints(relId);
-			if(verbose) PP3(selected, eps.first, eps.second);
-			if(eps.first == selected) {
-				neighbours_of_selected.push_back(eps.second);
-			} else {
-				assert(eps.second == selected);
-				neighbours_of_selected.push_back(eps.first);
-			}
-		}
-		sort(neighbours_of_selected.begin(), neighbours_of_selected.end());
+		graph :: neighbouring_node_id_iterator ns(g->get_plain_graph(), selected);
+		set_intersection(Candidates.begin()            , Candidates.end()
+	                ,ns, ns.end_marker()
+			,back_inserter(CandidatesNew_));
+		graph :: neighbouring_node_id_iterator ns2(g->get_plain_graph(), selected);
+		set_intersection(Not.begin()                 , Not.end()
+	                ,ns2, ns2.end_marker()
+			,back_inserter(NotNew_));
 	}
-	assert(int(neighbours_of_selected.size()) == g->degree(selected));
-	set_intersection(Candidates.begin()            , Candidates.end()
-	                ,neighbours_of_selected.begin(), neighbours_of_selected.end()
-			,back_inserter(CandidatesNew));
-	set_intersection(Not.begin()                 , Not.end()
-	                ,neighbours_of_selected.begin(), neighbours_of_selected.end()
-			,back_inserter(NotNew));
 
-	cliquesWorker(g, cliquesOut, minimumSize, Compsub, NotNew, CandidatesNew);
+	cliquesWorker(g, cliquesOut, minimumSize, Compsub, NotNew_, CandidatesNew_);
 
 	Compsub.pop_back(); // we must restore Compsub, it was passed by reference
 }

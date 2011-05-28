@@ -80,12 +80,15 @@ private:
 	std :: vector<int32_t> :: const_iterator i; // This will point at the current relationship
 	std :: vector<int32_t> :: const_iterator i_end; // the final relationship of this node
 public:
+	neighbouring_node_id_iterator() : vsg(NULL), node_id(0) { // constructor used to define the magic 'end-marker' iterator. Don't try to use it for real
+	}
 	neighbouring_node_id_iterator(const VerySimpleGraphInterface * _vsg, const int32_t _node_id) : vsg(_vsg), node_id(_node_id) {
 		assert(vsg);
 		this -> i = this->vsg->neighbouring_rels_in_order(node_id).begin();
 		this -> i_end = this->vsg->neighbouring_rels_in_order(node_id).end();
 	}
 	neighbouring_node_id_iterator & operator++() {
+		assert(vsg);
 		value_type old_value = this -> operator* ();
 		this->i ++;
 		if( ! this->at_end()) {
@@ -95,14 +98,17 @@ public:
 		return *this;
 	}
 	neighbouring_node_id_iterator   operator++(int) { // postfix. Should return the old iterator, but I'm going to return void :-)
+		assert(vsg);
 		neighbouring_node_id_iterator old_value(*this);
 		this -> operator++();
 		return old_value;
 	}
 	bool at_end() const {
+		assert(vsg);
 		return i == i_end;
 	}
 	value_type operator*() {
+		assert(vsg);
 		assert( ! this->at_end() );
 		const int32_t rel_id = *this->i;
 		const std :: pair <int32_t, int32_t> eps = this->vsg->EndPoints(rel_id);
@@ -112,6 +118,25 @@ public:
 			assert(eps.second == this->node_id);
 			return eps.first;
 		}
+	}
+	neighbouring_node_id_iterator end_marker() const;
+	bool operator == (const neighbouring_node_id_iterator &r) const {
+		if(this->vsg == NULL && r.vsg == NULL)
+			return true;
+		if(this->vsg == NULL)
+			return r.at_end();
+		if(r.vsg == NULL)
+			return this->at_end();
+		assert(this->vsg);
+		assert(r.vsg);
+		assert(this->vsg == r.vsg);
+		assert(this->node_id == r.node_id);
+		assert(this->i_end == r.i_end);
+
+		return this->i == r.i;
+	}
+	bool operator != (const neighbouring_node_id_iterator &r) const {
+		return ! this->operator== (r);
 	}
 };
 
