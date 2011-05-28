@@ -159,9 +159,9 @@ static void read_edge_list_from_file(ModifiableNetwork<NodeNameT> *modifiable_ne
 	{ // before the third phase (reading weights), we able to complete the VSG object, by populating the list of relationships.
 		for(int r = 0; r < R; r++) {
 			const pair<int32_t, int32_t> rel = tmp_ordered_relationships.at(r);
-			tmp_node_to_relationships_map.at(rel.first).push_back(rel.second);
+			tmp_node_to_relationships_map.at(rel.first).push_back(r);
 			if(rel.first != rel.second)
-				tmp_node_to_relationships_map.at(rel.second).push_back(rel.first);
+				tmp_node_to_relationships_map.at(rel.second).push_back(r);
 		}
 		// each individual vector should, I think, now be already sorted. I will now check that to be sure!
 		for(int n=0; n<N; n++) {
@@ -203,6 +203,21 @@ static void read_edge_list_from_file(ModifiableNetwork<NodeNameT> *modifiable_ne
 	tmp_plain_graph->node_to_relationships_map.swap(tmp_node_to_relationships_map);
 	tmp_plain_graph->N = N;
 	tmp_plain_graph->R = R;
+
+	if(verbose) {
+		for (size_t i = 0; i<modifiable_network->ordered_node_names.size(); i++) {
+			PP2(i,    modifiable_network->ordered_node_names.at(i));
+		}
+		for (size_t j = 0; j < tmp_plain_graph->ordered_relationships.size(); j++) {
+			PP3(j,         tmp_plain_graph->ordered_relationships.at(j).first, tmp_plain_graph->ordered_relationships.at(j).second);
+		}
+		for(size_t k=0; k <       tmp_plain_graph->node_to_relationships_map.size(); k++) {
+			for(size_t l =0; l < tmp_plain_graph->node_to_relationships_map.at(k).size(); l++) {
+				PP3(k,l,  tmp_plain_graph->node_to_relationships_map.at(k).at(l));
+			}
+		}
+	}
+
 	modifiable_network->plain_graph.reset(tmp_plain_graph);
 	assert(tmp_plain_graph);
 	tmp_plain_graph = NULL;
