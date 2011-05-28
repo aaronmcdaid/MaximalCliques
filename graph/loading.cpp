@@ -112,7 +112,6 @@ static void read_edge_list_from_file(ModifiableNetwork<NodeNameT> *modifiable_ne
 	 * - A second pass to identify all the unique relationships that exist, then they will be sorted
 	 * - Finally, now that the node_names, node_ids and relationship_ids are sorted, read the network into the prepared datastructures, including the weights
 	 */
-	PP(file_name);
 	typedef typename NodeNameT :: value_type t;
 	{ // first pass: just store the node names
 		ifstream f(file_name.c_str(), ios_base :: in | ios_base :: binary);
@@ -222,8 +221,6 @@ static void read_edge_list_from_file(ModifiableNetwork<NodeNameT> *modifiable_ne
 	assert(tmp_plain_graph);
 	tmp_plain_graph = NULL;
 	assert(!tmp_plain_graph);
-
-	PP2(modifiable_network->numNodes(), modifiable_network->numRels());
 
 	if(verbose) graph :: saving :: print_Network_to_screen(modifiable_network);
 }
