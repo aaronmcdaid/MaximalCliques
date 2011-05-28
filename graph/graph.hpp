@@ -40,7 +40,7 @@ public:
 	}
 };
 
-class neighbouring_rel_id_iterator : public std :: iterator<std::input_iterator_tag, const int32_t> { // given a node_id, we can iterate over its neighbours and get the node_id of them
+class neighbouring_rel_id_iterator : public std :: iterator< std :: forward_iterator_tag, const int32_t> { // given a node_id, we can iterate over its neighbours and get the node_id of them
 private:
 	std :: vector<int32_t> :: const_iterator i; // This will point at the current relationship
 	std :: vector<int32_t> :: const_iterator i_end; // the final relationship of this node
@@ -51,7 +51,12 @@ public:
 		this -> i_end = vsg->neighbouring_rels_in_order(node_id).end();
 	}
 	neighbouring_rel_id_iterator & operator++() {
+		value_type old_value = this -> operator* ();
 		this->i ++;
+		if( ! this->at_end()) {
+			value_type new_value = this -> operator* ();
+			assert(new_value > old_value);
+		}
 		return *this;
 	}
 	neighbouring_rel_id_iterator   operator++(int) { // postfix. Should return the old iterator, but I'm going to return void :-)
@@ -63,7 +68,50 @@ public:
 		return i == i_end;
 	}
 	value_type operator*() {
+		assert( ! this->at_end() );
 		return * this->i;
+	}
+};
+
+class neighbouring_node_id_iterator : public std :: iterator< std :: forward_iterator_tag, const int32_t> { // given a node_id, we can iterate over its neighbours and get the node_id of them
+private:
+	const VerySimpleGraphInterface * const vsg;
+	const int32_t node_id;
+	std :: vector<int32_t> :: const_iterator i; // This will point at the current relationship
+	std :: vector<int32_t> :: const_iterator i_end; // the final relationship of this node
+public:
+	neighbouring_node_id_iterator(const VerySimpleGraphInterface * _vsg, const int32_t _node_id) : vsg(_vsg), node_id(_node_id) {
+		assert(vsg);
+		this -> i = this->vsg->neighbouring_rels_in_order(node_id).begin();
+		this -> i_end = this->vsg->neighbouring_rels_in_order(node_id).end();
+	}
+	neighbouring_node_id_iterator & operator++() {
+		value_type old_value = this -> operator* ();
+		this->i ++;
+		if( ! this->at_end()) {
+			value_type new_value = this -> operator* ();
+			assert(new_value > old_value);
+		}
+		return *this;
+	}
+	neighbouring_node_id_iterator   operator++(int) { // postfix. Should return the old iterator, but I'm going to return void :-)
+		neighbouring_node_id_iterator old_value(*this);
+		this -> operator++();
+		return old_value;
+	}
+	bool at_end() const {
+		return i == i_end;
+	}
+	value_type operator*() {
+		assert( ! this->at_end() );
+		const int32_t rel_id = *this->i;
+		const std :: pair <int32_t, int32_t> eps = this->vsg->EndPoints(rel_id);
+		if(eps.first == this->node_id) {
+			return eps.second;
+		} else {
+			assert(eps.second == this->node_id);
+			return eps.first;
+		}
 	}
 };
 
