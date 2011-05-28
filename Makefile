@@ -6,7 +6,7 @@ BITS=
 all: boost_1_41_0 justTheCliques
 
 clean:
-	-rm tags justTheCliques *.o
+	-rm tags justTheCliques *.o */*.o
 
 tags:
 	ctags *.[ch]pp
@@ -35,4 +35,4 @@ LDFLAGS+= -lstdc++ -lrt
 CXXFLAGS= ${BITS} -O3        ${CFLAGS} # -DNDEBUG
 #CXXFLAGS=              -O2                 
 
-justTheCliques: shmGraphRaw.o justTheCliques.o Range.o cliques.o graph_utils.o
+justTheCliques: shmGraphRaw.o justTheCliques.o Range.o cliques.o graph_utils.o graph/weights.o graph/strings.o graph/loading.o graph/network.o graph/saving.o

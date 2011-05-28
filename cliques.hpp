@@ -12,13 +12,14 @@
 
 #include "Range.hpp"
 #include "aaron_utils.hpp"
-#include "shmGraphRaw.hpp"
+// #include "shmGraphRaw.hpp"
+#include "graph/network.hpp"
 
 using namespace std;
 
 typedef int V;
 typedef int VertexIDType;
-typedef const shmGraphRaw :: SimpleIntGraphInterface * SimpleIntGraph;
+typedef const graph :: NetworkInt32 * SimpleIntGraph;
 // typedef const shmGraphRaw :: ReadableShmGraphBase    * SimpleIntGraph;
 
 namespace cliques {

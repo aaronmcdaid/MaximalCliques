@@ -1,9 +1,12 @@
 #include "cliques.hpp"
 #include "graph_utils.hpp"
+#include <set>
 
 namespace cliques {
 
 void cliquesWorker(const SimpleIntGraph &g, CliqueFunctionAdaptor &cliquesOut, unsigned int minimumSize, vector<V> & Compsub, list<V> Not, list<V> Candidates);
+
+static const bool verbose = false;
 
 void cliquesForOneNode(const SimpleIntGraph &g, CliqueFunctionAdaptor &cliquesOut, int minimumSize, V v) {
 	if(g->degree(v) + 1 < minimumSize)
@@ -18,7 +21,27 @@ void cliquesForOneNode(const SimpleIntGraph &g, CliqueFunctionAdaptor &cliquesOu
 	// copy those below the split into Not
 	// copy those above the split into Candidates
 	// there shouldn't ever be a neighbour equal to the split, this'd mean a self-loop
-	forEach(int otherEnd, amd::mk_range(g->neighbours(v))) {
+	std :: vector<int32_t> neighbours_of_v;
+	{
+		const std :: vector<int32_t> & neigh_rels = g->get_plain_graph()->neighbouring_rels_in_order(v);
+		if(verbose) PP2(neigh_rels.size(), g->degree(v));
+		assert((int)neigh_rels.size() == g->degree(v));
+		for(size_t x = 0; x < neigh_rels.size(); x++) {
+			const int32_t relId = neigh_rels.at(x);
+			if(verbose) PP(relId);
+			const std :: pair <int32_t, int32_t> eps = g->get_plain_graph()->EndPoints(relId);
+			if(verbose) PP3(v, eps.first, eps.second);
+			if(eps.first == v) {
+				neighbours_of_v.push_back(eps.second);
+			} else {
+				assert(eps.second == v);
+				neighbours_of_v.push_back(eps.first);
+			}
+		}
+		sort(neighbours_of_v.begin(), neighbours_of_v.end());
+	}
+	assert(int(neighbours_of_v.size()) == g->degree(v));
+	forEach(int otherEnd, amd::mk_range( neighbours_of_v )) {
 		if(otherEnd < v)
 			Not.push_back(otherEnd);
 		if(otherEnd > v)
@@ -37,7 +60,26 @@ static inline void tryCandidate (const SimpleIntGraph & g, CliqueFunctionAdaptor
 	list<V> NotNew;
 	list<V> CandidatesNew;
 
-	const std::set<int> &neighbours_of_selected = g->neighbours(selected);
+	vector<int32_t> neighbours_of_selected;
+	{
+		const std :: vector<int32_t> & neigh_rels = g->get_plain_graph()->neighbouring_rels_in_order(selected);
+		if(verbose) PP2(neigh_rels.size(), g->degree(selected));
+		assert((int)neigh_rels.size() == g->degree(selected));
+		for(size_t x = 0; x < neigh_rels.size(); x++) {
+			const int32_t relId = neigh_rels.at(x);
+			if(verbose) PP(relId);
+			const std :: pair <int32_t, int32_t> eps = g->get_plain_graph()->EndPoints(relId);
+			if(verbose) PP3(selected, eps.first, eps.second);
+			if(eps.first == selected) {
+				neighbours_of_selected.push_back(eps.second);
+			} else {
+				assert(eps.second == selected);
+				neighbours_of_selected.push_back(eps.first);
+			}
+		}
+		sort(neighbours_of_selected.begin(), neighbours_of_selected.end());
+	}
+	assert(int(neighbours_of_selected.size()) == g->degree(selected));
 	set_intersection(Candidates.begin()            , Candidates.end()
 	                ,neighbours_of_selected.begin(), neighbours_of_selected.end()
 			,back_inserter(CandidatesNew));
@@ -78,7 +120,7 @@ void cliquesWorker(const SimpleIntGraph & g, CliqueFunctionAdaptor &cliquesOut, 
 			// dout << v << ": ";
 			ContainerRange<list<V> > testThese(Candidates);
 			Foreach(V v2, testThese) {
-				if(!g->are_connected(v, v2)) {
+				if(!g->get_plain_graph()->are_connected(v, v2)) {
 					// dout << "disconnected: (" << v << ',' << v2 << ") ";
 					++currentDiscs;
 				}
@@ -98,7 +140,7 @@ void cliquesWorker(const SimpleIntGraph & g, CliqueFunctionAdaptor &cliquesOut, 
 			ContainerRange<list<V> > useTheDisconnected(CandidatesCopy);
 			Foreach(V v, useTheDisconnected) {
 				unless(Candidates.size() + Compsub.size() >= minimumSize) return;
-				if(fewestDisc >0 && v!=fewestDiscVertex && !g->are_connected(v, fewestDiscVertex)) {
+				if(fewestDisc >0 && v!=fewestDiscVertex && !g->get_plain_graph()->are_connected(v, fewestDiscVertex)) {
 					// dout << "Into Not " << v << '\n';
 					unless(Candidates.size() + Compsub.size() >= minimumSize) return;
 					// forEach(int cand, amd::mk_range(Candidates)) { PP(cand); }

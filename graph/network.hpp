@@ -48,6 +48,7 @@ struct NetworkInterfaceConvertedToString  { // Any NodeNameT (int or string) sho
 	virtual const graph :: VerySimpleGraphInterface * get_plain_graph() const = 0;
 	virtual int32_t numNodes() const { return this->get_plain_graph()->numNodes(); } // make these pure, and hide the members from this interface
 	virtual int32_t numRels()  const { return this->get_plain_graph()->numRels(); }
+	virtual int32_t degree(const int32_t node_id) const { return this->get_plain_graph()->degree(node_id); }
 
 	virtual ~NetworkInterfaceConvertedToString();
 };

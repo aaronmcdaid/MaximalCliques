@@ -103,12 +103,11 @@ public:
 class SimpleIntGraphInterface {
 public:
 	virtual ~SimpleIntGraphInterface() {}
-	virtual int numNodes() const = 0;
-	virtual int numRels() const = 0;
+	virtual int32_t numNodes() const = 0;
+	virtual int32_t numRels() const = 0;
 	virtual std :: string node_name_as_string(int32_t node_id) const = 0;
-	virtual int degree(int v) const = 0; // implemented in ReadableShmGraphTemplate<T>
-	virtual const std::set<int> & neighbours(int v) const = 0; // implemented in ReadableShmGraphTemplate<T>
-	virtual bool are_connected(int v1, int v2) const = 0;
+	virtual int32_t degree(int32_t v) const = 0; // implemented in ReadableShmGraphTemplate<T>
+	virtual bool are_connected(int32_t v1, int32_t v2) const = 0;
 };
 
 class ReadableShmGraphBase : public SimpleIntGraphInterface {
@@ -123,7 +122,7 @@ public:
 	virtual std::string WhichNode(int v) const; // impure function
 
 	virtual int degree(int v) const = 0; // implemented in ReadableShmGraphTemplate<T>
-	virtual const std::set<int> & neighbours(int v) const = 0; // implemented in ReadableShmGraphTemplate<T>
+	virtual const std::set<int32_t> & neighbours(int32_t v) const = 0; // implemented in ReadableShmGraphTemplate<T>
 };
 
 template <class T>
