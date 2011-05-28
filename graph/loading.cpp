@@ -16,6 +16,8 @@ using namespace std;
 namespace graph {
 namespace loading {
 
+static const bool verbose = false;
+
 template <class NodeNameT>
 struct ModifiableNetwork;
 template <class NodeNameT>
@@ -73,7 +75,7 @@ template struct ModifiableNetwork<graph :: NodeNameIsInt32>;
 template struct ModifiableNetwork<graph :: NodeNameIsString>;
 
 static ThreeStrings parseLine(const string &lineOrig) {
-	PP(lineOrig);
+	if(verbose) PP(lineOrig);
 	string line(lineOrig); // copy the line. We want to keep the original in order to print error messages
 	// line will not have any newlines in it
 	// So I'll convert all the delimeters (space, tab, pipe) to newlines
@@ -142,7 +144,7 @@ static void read_edge_list_from_file(ModifiableNetwork<NodeNameT> *modifiable_ne
 			if(one_node_id > another_node_id)
 				swap(one_node_id, another_node_id);
 			set_of_relationships.insert( make_pair(one_node_id, another_node_id) );
-			PP2(one_node_id, another_node_id);
+			if(verbose) PP2(one_node_id, another_node_id);
 		}
 		for( typename set< pair<int32_t,int32_t> > :: const_iterator i = set_of_relationships.begin() ; i != set_of_relationships.end(); i++) {
 			tmp_ordered_relationships.push_back(*i);
@@ -179,9 +181,9 @@ static void read_edge_list_from_file(ModifiableNetwork<NodeNameT> *modifiable_ne
 		string line;
 		while( getline(f, line) ) {
 			if(!line.empty() && *line.rbegin() == '\r') { line.erase( line.length()-1, 1); }
-			PP(line);
+			if(verbose) PP(line);
 			ThreeStrings t = parseLine(line);
-			PP3(t.first.first, t.first.second, t.second);
+			if(verbose) PP3(t.first.first, t.first.second, t.second);
 			const int32_t source_node_id = modifiable_network->find_ordered_node_names_offset( NodeNameT :: fromString(t.first.first)  );
 			const int32_t target_node_id = modifiable_network->find_ordered_node_names_offset( NodeNameT :: fromString(t.first.second) );
 			int32_t one_node_id = source_node_id;
@@ -191,7 +193,7 @@ static void read_edge_list_from_file(ModifiableNetwork<NodeNameT> *modifiable_ne
 			int32_t relationship_id = lower_bound(tmp_ordered_relationships.begin(), tmp_ordered_relationships.end(), make_pair(one_node_id, another_node_id)) - tmp_ordered_relationships.begin();
 			assert( tmp_ordered_relationships.at(relationship_id).first  == one_node_id );
 			assert( tmp_ordered_relationships.at(relationship_id).second == another_node_id );
-			PP3(relationship_id, source_node_id, target_node_id);
+			if(verbose) PP3(relationship_id, source_node_id, target_node_id);
 			modifiable_network->edge_weights->new_rel(relationship_id, make_pair(source_node_id, target_node_id), t.second);
 		}
 	}
@@ -208,7 +210,7 @@ static void read_edge_list_from_file(ModifiableNetwork<NodeNameT> *modifiable_ne
 
 	PP2(modifiable_network->numNodes(), modifiable_network->numRels());
 
-	graph :: saving :: print_Network_to_screen(modifiable_network);
+	if(verbose) graph :: saving :: print_Network_to_screen(modifiable_network);
 }
 
 std :: auto_ptr< graph :: NetworkInt32 > make_Network_from_edge_list_int32 (const std :: string file_name, const bool directed, const bool weighted) throw(BadlyFormattedLine) { ModifiableNetwork<NodeNameIsInt32> *network = new ModifiableNetwork<NodeNameIsInt32>(directed, weighted);
