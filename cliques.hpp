@@ -66,7 +66,7 @@ struct CliquesToStdout {
 			ForeachContainer(V v, Compsub) {
 				if(!firstField)
 					std :: cout	<< ' ';
-				std :: cout << (*g)->NodeAsString(v);
+				std :: cout << (*g)->node_name_as_string(v);
 				firstField = false;
 			}
 			std :: cout << endl;

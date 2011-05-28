@@ -105,7 +105,7 @@ public:
 	virtual ~SimpleIntGraphInterface() {}
 	virtual int numNodes() const = 0;
 	virtual int numRels() const = 0;
-	virtual const char * NodeAsString(int v) const = 0;
+	virtual std :: string node_name_as_string(int32_t node_id) const = 0;
 	virtual int degree(int v) const = 0; // implemented in ReadableShmGraphTemplate<T>
 	virtual const std::set<int> & neighbours(int v) const = 0; // implemented in ReadableShmGraphTemplate<T>
 	virtual bool are_connected(int v1, int v2) const = 0;
@@ -115,6 +115,7 @@ class ReadableShmGraphBase : public SimpleIntGraphInterface {
 public:
 	virtual ~ReadableShmGraphBase();
 	virtual int numNodesWithAtLeastOneRel() const = 0;
+	virtual const char * NodeAsString(int v) const = 0;
 	virtual std::pair<const char*, const char*> EndPointsAsStrings(int relId) const = 0;
 	virtual int StringToNodeId(const char *s) const = 0;
 	virtual const std::pair<int, int> & EndPoints(int relId) const = 0;

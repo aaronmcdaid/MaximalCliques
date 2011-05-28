@@ -233,6 +233,7 @@ public:
 	virtual int numNodesWithAtLeastOneRel()  const;
 	virtual const typename T::mmap_uset_of_ints & myRels(int n) const;
 	virtual pair<const char*, const char*> EndPointsAsStrings(int relId) const;
+	virtual std :: string node_name_as_string(int32_t node_id) const;
 	virtual const char * NodeAsString(int v) const;
 	virtual int StringToNodeId(const char *s) const;
 	virtual const std::pair<int, int> & EndPoints(int relId) const;
@@ -262,9 +263,13 @@ template<class T>
 		return make_pair(l,r);
 	}
 template<class T>
-/* virtual */ const char * DumbGraphReadableTemplate<T>::NodeAsString(int v) const {
+/* virtual */ const char * DumbGraphReadableTemplate<T> :: NodeAsString(int v) const {
 		return (*strings_wrapRO)[nodesRO->template get<idT>().find(v )->string_h];
 	}
+template<class T>
+/*virtual*/ std :: string DumbGraphReadableTemplate<T> :: node_name_as_string (int32_t node_id) const {
+		return (*strings_wrapRO)[nodesRO->template get<idT>().find( node_id )->string_h];
+}
 template<class T>
 /* virtual */ int DumbGraphReadableTemplate<T>::StringToNodeId(const char *s) const {
 		StrH string_handle = strings_wrapRO->StringToStringId(s);
@@ -287,6 +292,7 @@ template<class T>
 		return (relationshipsRO->template get<nodeIdsT>().end() != relationshipsRO->template get<nodeIdsT>().find(make_pair(v1,v2)) );
 	}
 
+template struct DumbGraphReadableTemplate<PlainMem>;
 DumbGraphReadableTemplate<PlainMem> testosdlfjslkdfjlsdjfkldsbject;
 
 template <class T>
