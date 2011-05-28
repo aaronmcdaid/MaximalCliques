@@ -21,6 +21,7 @@ void cliquesForOneNode(const SimpleIntGraph &g, CliqueFunctionAdaptor &cliquesOu
 	// copy those below the split into Not
 	// copy those above the split into Candidates
 	// there shouldn't ever be a neighbour equal to the split, this'd mean a self-loop
+/*
 	std :: vector<int32_t> neighbours_of_v;
 	{
 		const std :: vector<int32_t> & neigh_rels = g->get_plain_graph()->neighbouring_rels_in_order(v);
@@ -41,13 +42,23 @@ void cliquesForOneNode(const SimpleIntGraph &g, CliqueFunctionAdaptor &cliquesOu
 		sort(neighbours_of_v.begin(), neighbours_of_v.end());
 	}
 	assert(int(neighbours_of_v.size()) == g->degree(v));
-	forEach(int otherEnd, amd::mk_range( neighbours_of_v )) {
-		if(otherEnd < v)
-			Not.push_back(otherEnd);
-		if(otherEnd > v)
-			Candidates.push_back(otherEnd);
-	}
+*/
+	{
+		graph :: neighbouring_node_id_iterator ns(g->get_plain_graph(), v);
+		int32_t last_neighbour_id = -1;
+		while( !ns.at_end() ) {
+			const int neighbour_id = *ns;
 
+			if(neighbour_id < v)
+				Not.push_back(neighbour_id);
+			if(neighbour_id > v)
+				Candidates.push_back(neighbour_id);
+
+			assert(last_neighbour_id < neighbour_id);
+			last_neighbour_id = neighbour_id;
+			++ ns;
+		}
+	}
 
 	//copy(neighbours_of_v.first, split, back_inserter(Not));
 	//copy(split, neighbours_of_v.second, back_inserter(Candidates));
