@@ -90,10 +90,10 @@ static void cliquesForOneNode(const SimpleIntGraph &g, CliqueReceiver *send_cliq
 	// copy those above the split into Candidates
 	// there shouldn't ever be a neighbour equal to the split, this'd mean a self-loop
 	{
-		graph :: neighbouring_node_id_iterator ns(g, v);
+		const vector<int32_t> &neighs_of_v = g->neighbouring_nodes_in_order(v);
 		int32_t last_neighbour_id = -1;
-		while( !ns.at_end() ) {
-			const int neighbour_id = *ns;
+		for(vector<int32_t> :: const_iterator i = neighs_of_v.begin(); i != neighs_of_v.end(); i++) {
+			const int neighbour_id = *i;
 
 			if(neighbour_id < v)
 				Not.push_back(neighbour_id);
@@ -102,7 +102,6 @@ static void cliquesForOneNode(const SimpleIntGraph &g, CliqueReceiver *send_cliq
 
 			assert(last_neighbour_id < neighbour_id);
 			last_neighbour_id = neighbour_id;
-			++ ns;
 		}
 	}
 
@@ -119,13 +118,12 @@ static inline void tryCandidate (const SimpleIntGraph & g, CliqueReceiver *send_
 	list_of_ints CandidatesNew_;
 	list_of_ints NotNew_;
 	
-	graph :: neighbouring_node_id_iterator ns(g, selected);
+	const vector<int32_t> &neighs_of_selected = g->neighbouring_nodes_in_order(selected);
 	set_intersection(Candidates.get().begin()            , Candidates.get().end()
-	                ,ns, ns.end_marker()
+			, neighs_of_selected.begin(), neighs_of_selected.end()
 			,back_inserter(CandidatesNew_));
-	graph :: neighbouring_node_id_iterator ns2(g, selected);
 	set_intersection(Not.get().begin()                 , Not.get().end()
-	                ,ns2, ns2.end_marker()
+			, neighs_of_selected.begin(), neighs_of_selected.end()
 			,back_inserter(NotNew_));
 
 	cliquesWorker(g, send_cliques_here, minimumSize, Compsub, NotNew_, CandidatesNew_);
