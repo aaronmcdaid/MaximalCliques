@@ -13,7 +13,49 @@ using namespace std;
 namespace cliques {
 
 typedef int32_t V;
-typedef list<V> list_of_ints;
+//typedef list<V> list_of_ints;
+struct list_of_ints : private list<int32_t> {
+	size_t sz;
+	typedef list<int32_t> :: const_iterator const_iterator;
+	typedef list<int32_t> :: iterator iterator;
+	typedef list<int32_t> :: const_reference const_reference;
+
+	explicit list_of_ints() : list<int32_t>(), sz(0) {
+	}
+
+	const list<int32_t> & get() const {
+		return *this;
+	}
+	void push_back(int32_t v) {
+		++ sz;
+		this -> list<int32_t> :: push_back(v);
+	}
+	size_t size() const {
+		// assert (sz == this -> list<int32_t> :: size()) ;
+		return sz;
+	}
+	bool empty() const {
+		return this -> list<int32_t> :: empty();
+	}
+	iterator begin() {
+		return this -> list<int32_t> :: begin();
+	}
+	iterator end() {
+		return this -> list<int32_t> :: end();
+	}
+	iterator erase(iterator i) {
+		-- sz;
+		return this -> list<int32_t> :: erase(i);
+	}
+	void insert(iterator i, int32_t v) {
+		++ sz;
+		this -> list<int32_t> :: insert(i, v);
+	}
+private:
+	list_of_ints(const list<int32_t> &) {} // this should never happen. It'd be a problem as this->sz would then be wrong, I think.
+
+};
+typedef set<V> not_type;
 
 struct CliqueReceiver;
 static void cliquesWorker(const SimpleIntGraph &g, CliqueReceiver *send_cliques_here, unsigned int minimumSize, vector<V> & Compsub, list_of_ints Not, list_of_ints Candidates);
@@ -78,11 +120,11 @@ static inline void tryCandidate (const SimpleIntGraph & g, CliqueReceiver *send_
 	list_of_ints NotNew_;
 	{
 		graph :: neighbouring_node_id_iterator ns(g, selected);
-		set_intersection(Candidates.begin()            , Candidates.end()
+		set_intersection(Candidates.get().begin()            , Candidates.get().end()
 	                ,ns, ns.end_marker()
 			,back_inserter(CandidatesNew_));
 		graph :: neighbouring_node_id_iterator ns2(g, selected);
-		set_intersection(Not.begin()                 , Not.end()
+		set_intersection(Not.get().begin()                 , Not.get().end()
 	                ,ns2, ns2.end_marker()
 			,back_inserter(NotNew_));
 	}
@@ -133,7 +175,8 @@ static void cliquesWorker(const SimpleIntGraph &g, CliqueReceiver *send_cliques_
 					unless(Candidates.size() + Compsub.size() >= minimumSize) return;
 					i = Candidates.erase(i);
 					tryCandidate(g, send_cliques_here, minimumSize, Compsub, Not, Candidates, v);
-					Not.insert(lower_bound(Not.begin(), Not.end(), v) ,v); // we MUST keep the list Not in order
+					list_of_ints :: iterator insertHere = lower_bound(Not.begin(), Not.end(), v);
+					Not.insert(insertHere ,v); // we MUST keep the list Not in order
 					--fewestDisc;
 				} else
 					++i;
@@ -205,7 +248,7 @@ void cliquesToStdout(const graph :: NetworkInterfaceConvertedToString * net, uns
 
 static int32_t count_disconnections(const list_of_ints &Candidates, const int32_t v, const SimpleIntGraph &g) {
 	int currentDiscs = 0;
-	for( list_of_ints :: const_iterator i = Candidates.begin(); i != Candidates.end(); i++) {
+	for( list_of_ints :: const_iterator i = Candidates.get().begin(); i != Candidates.get().end(); i++) {
 		V v2 = *i;
 		if(!g->are_connected(v, v2)) {
 			++currentDiscs;
@@ -216,7 +259,7 @@ static int32_t count_disconnections(const list_of_ints &Candidates, const int32_
 static void find_node_with_fewest_discs(int &fewestDisc, int &fewestDiscVertex, bool &fewestIsInCands, const list_of_ints &Not, const list_of_ints &Candidates, const SimpleIntGraph &g) {
 		assert(!Candidates.empty());
 		// TODO: Make use of degree, or something like that, to speed up this counting of disconnects?
-		for(list_of_ints :: const_iterator i = Not.begin(); i != Not.end(); i++) {
+		for(list_of_ints :: const_iterator i = Not.get().begin(); i != Not.get().end(); i++) {
 			V v = *i;
 			const int currentDiscs = count_disconnections(Candidates, v, g);
 			if(currentDiscs < fewestDisc) {
@@ -226,7 +269,7 @@ static void find_node_with_fewest_discs(int &fewestDisc, int &fewestDiscVertex, 
 				if(!fewestIsInCands && fewestDisc==0) return; // something in Not is connected to everything in Cands. Just give up now!
 			}
 		}
-		for(list_of_ints :: const_iterator i = Candidates.begin(); i != Candidates.end(); i++) {
+		for(list_of_ints :: const_iterator i = Candidates.get().begin(); i != Candidates.get().end(); i++) {
 			V v = *i;
 			const int currentDiscs = count_disconnections(Candidates, v, g);
 			if(currentDiscs < fewestDisc) {
