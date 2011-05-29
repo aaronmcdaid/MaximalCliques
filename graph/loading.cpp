@@ -3,6 +3,12 @@
 #include"saving.hpp"
 #include"../pp.hpp"
 
+#define USE_BLOOM_FILTER
+#ifdef USE_BLOOM_FILTER
+#include"bloom.hpp"
+#include <tr1/unordered_set>
+#endif
+
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -32,16 +38,50 @@ class MyVSG;
 
 /* try to put all the  forward-declares above this line */
 
-struct MyVSG : public VerySimpleGraphInterface {
+#ifdef USE_BLOOM_FILTER
+struct hash_pair_of_ints {
+	std :: tr1 :: hash<int> h;
+	size_t operator()(const std::pair<int, int> &r) const {
+		return h(r.first) ^ h(-100000*r.second);
+	}
+};
+#endif
+
+class MyVSG : public VerySimpleGraphInterface {
+public:
 	int N, R;
 	vector< pair<int32_t,int32_t> > ordered_relationships; // the relationships, to be ordered by the node_ids inside them. .first <= .second
 	vector< vector<int32_t> > node_to_relationships_map; // for each node, the *relationships* it is in. In order
+#ifdef USE_BLOOM_FILTER
+	std :: auto_ptr<const graph :: bloom :: BloomAreConnected> bloom;
+	std :: tr1 :: unordered_set< pair<int32_t, int32_t>, hash_pair_of_ints > uset_of_connected_nodes;
+#endif
+
+	MyVSG () {
+	}
+
 	int numNodes() const { return this->N; }
 	int numRels() const { return this->R; }
 	virtual const std :: pair<int32_t, int32_t> & EndPoints(int32_t rel_id) const { assert(rel_id >= 0 && rel_id < this->R); return this->ordered_relationships.at(rel_id); }
 	virtual const std :: vector<int32_t> & neighbouring_rels_in_order(const int32_t node_id) const {
 		return this->node_to_relationships_map.at(node_id);
 	}
+#ifdef USE_BLOOM_FILTER
+	virtual bool are_connected(int32_t node_id_1, int32_t node_id_2) const { // I'll reimplement this with graph :: bloom :: BloomAreConnected
+		assert(this->bloom.get());
+		const bool according_to_bloom = this->bloom->test( this, node_id_1, node_id_2 );
+		if(according_to_bloom == false) {
+			return false;
+		}
+		// assert(int(this->uset_of_connected_nodes.size()) == this->numRels());
+		if(node_id_1 > node_id_2)
+			swap(node_id_1 , node_id_2);
+
+		return this->uset_of_connected_nodes.count( make_pair(node_id_1, node_id_2) );
+		// const bool via_binary_search = this -> VerySimpleGraphInterface :: are_connected(node_id_1, node_id_2);
+		// return via_binary_search;
+	}
+#endif
 };
 
 template <class NodeNameT>
@@ -216,6 +256,13 @@ static void read_edge_list_from_file(ModifiableNetwork<NodeNameT> *modifiable_ne
 			}
 		}
 	}
+
+#ifdef USE_BLOOM_FILTER
+	for(int r=0; r<R; r++) {
+		tmp_plain_graph->uset_of_connected_nodes.insert ( tmp_plain_graph->ordered_relationships.at(r) );
+	}
+	tmp_plain_graph->bloom.reset(new graph :: bloom :: BloomAreConnected( tmp_plain_graph ));
+#endif
 
 	modifiable_network->plain_graph.reset(tmp_plain_graph);
 	assert(tmp_plain_graph);
