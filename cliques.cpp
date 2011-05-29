@@ -19,7 +19,7 @@ struct CliqueReceiver;
 static void cliquesWorker(const SimpleIntGraph &g, CliqueReceiver *send_cliques_here, unsigned int minimumSize, vector<V> & Compsub, list_of_ints Not, list_of_ints Candidates);
 static void findCliques(const SimpleIntGraph &g, CliqueReceiver *cliquesOut, unsigned int minimumSize);
 static void cliquesForOneNode(const SimpleIntGraph &g, CliqueReceiver *send_cliques_here, int minimumSize, V v);
-static void find_node_with_fewest_discs(int &fewestDisc, int &fewestDiscVertex, bool &fewestIsInCands, list_of_ints &Not, list_of_ints &Candidates, const SimpleIntGraph &g);
+static void find_node_with_fewest_discs(int &fewestDisc, int &fewestDiscVertex, bool &fewestIsInCands, const list_of_ints &Not, const list_of_ints &Candidates, const SimpleIntGraph &g);
 static const bool verbose = false;
 
 struct CliqueReceiver {
@@ -194,18 +194,26 @@ static int32_t count_disconnections(const list_of_ints &Candidates, const int32_
 	}
 	return currentDiscs;
 }
-static void find_node_with_fewest_discs(int &fewestDisc, int &fewestDiscVertex, bool &fewestIsInCands, list_of_ints &Not, list_of_ints &Candidates, const SimpleIntGraph &g) {
-		ContainerRange<list_of_ints > nRange(Not);
-		ContainerRange<list_of_ints > cRange(Candidates);
-		ChainedRange<ContainerRange<list_of_ints > >  frontier(nRange, cRange); // The concatenated range of Not and Candidates
-		// There'll be node in Candidates anyway.
+static void find_node_with_fewest_discs(int &fewestDisc, int &fewestDiscVertex, bool &fewestIsInCands, const list_of_ints &Not, const list_of_ints &Candidates, const SimpleIntGraph &g) {
+		assert(!Candidates.empty());
 		// TODO: Make use of degree, or something like that, to speed up this counting of disconnects?
-		Foreach(V v, frontier) {
+		for(list_of_ints :: const_iterator i = Not.begin(); i != Not.end(); i++) {
+			V v = *i;
 			const int currentDiscs = count_disconnections(Candidates, v, g);
 			if(currentDiscs < fewestDisc) {
 				fewestDisc = currentDiscs;
 				fewestDiscVertex = v;
-				fewestIsInCands = frontier.firstEmpty();
+				fewestIsInCands = false;
+				if(!fewestIsInCands && fewestDisc==0) return; // something in Not is connected to everything in Cands. Just give up now!
+			}
+		}
+		for(list_of_ints :: const_iterator i = Candidates.begin(); i != Candidates.end(); i++) {
+			V v = *i;
+			const int currentDiscs = count_disconnections(Candidates, v, g);
+			if(currentDiscs < fewestDisc) {
+				fewestDisc = currentDiscs;
+				fewestDiscVertex = v;
+				fewestIsInCands = true;
 				if(!fewestIsInCands && fewestDisc==0) return; // something in Not is connected to everything in Cands. Just give up now!
 			}
 		}
