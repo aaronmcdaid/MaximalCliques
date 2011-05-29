@@ -9,11 +9,14 @@
 using namespace std;
 
 
+
 namespace cliques {
 
 typedef int32_t V;
+typedef list<V> list_of_ints;
+
 struct CliqueReceiver;
-static void cliquesWorker(const SimpleIntGraph &g, CliqueReceiver *send_cliques_here, unsigned int minimumSize, vector<V> & Compsub, list<V> Not, list<V> Candidates);
+static void cliquesWorker(const SimpleIntGraph &g, CliqueReceiver *send_cliques_here, unsigned int minimumSize, vector<V> & Compsub, list_of_ints Not, list_of_ints Candidates);
 static void findCliques(const SimpleIntGraph &g, CliqueReceiver *cliquesOut, unsigned int minimumSize);
 static void cliquesForOneNode(const SimpleIntGraph &g, CliqueReceiver *send_cliques_here, int minimumSize, V v);
 static const bool verbose = false;
@@ -30,7 +33,7 @@ static void cliquesForOneNode(const SimpleIntGraph &g, CliqueReceiver *send_cliq
 
 
 	vector<V> Compsub;
-	list<V> Not, Candidates;
+	list_of_ints Not, Candidates;
 	Compsub.push_back(v);
 
 
@@ -59,12 +62,12 @@ static void cliquesForOneNode(const SimpleIntGraph &g, CliqueReceiver *send_cliq
 	cliquesWorker(g, send_cliques_here, minimumSize, Compsub, Not, Candidates);
 }
 
-static inline void tryCandidate (const SimpleIntGraph & g, CliqueReceiver *send_cliques_here, unsigned int minimumSize, vector<V> & Compsub, const list<V> & Not, const list<V> & Candidates, const V selected) {
+static inline void tryCandidate (const SimpleIntGraph & g, CliqueReceiver *send_cliques_here, unsigned int minimumSize, vector<V> & Compsub, const list_of_ints & Not, const list_of_ints & Candidates, const V selected) {
 	assert(!Compsub.empty());
 	Compsub.push_back(selected); // Compsub does *not* have to be ordered. I might try to enforce that in future though.
 
-	list<V> CandidatesNew_;
-	list<V> NotNew_;
+	list_of_ints CandidatesNew_;
+	list_of_ints NotNew_;
 	{
 		graph :: neighbouring_node_id_iterator ns(g, selected);
 		set_intersection(Candidates.begin()            , Candidates.end()
@@ -80,7 +83,7 @@ static inline void tryCandidate (const SimpleIntGraph & g, CliqueReceiver *send_
 
 	Compsub.pop_back(); // we must restore Compsub, it was passed by reference
 }
-static void cliquesWorker(const SimpleIntGraph &g, CliqueReceiver *send_cliques_here, unsigned int minimumSize, vector<V> & Compsub, list<V> Not, list<V> Candidates) {
+static void cliquesWorker(const SimpleIntGraph &g, CliqueReceiver *send_cliques_here, unsigned int minimumSize, vector<V> & Compsub, list_of_ints Not, list_of_ints Candidates) {
 	// p2p         511462                   (10)
 	// authors000                  (250)    (<4)
 	// authors010  212489     5.3s (4.013)
@@ -106,14 +109,14 @@ static void cliquesWorker(const SimpleIntGraph &g, CliqueReceiver *send_cliques_
 	V fewestDiscVertex = Candidates.front();
 	bool fewestIsInCands = false;
 	{
-		ContainerRange<list<V> > nRange(Not);
-		ContainerRange<list<V> > cRange(Candidates);
-		ChainedRange<ContainerRange<list<V> > >  frontier(nRange, cRange); // The concatenated range of Not and Candidates
+		ContainerRange<list_of_ints > nRange(Not);
+		ContainerRange<list_of_ints > cRange(Candidates);
+		ChainedRange<ContainerRange<list_of_ints > >  frontier(nRange, cRange); // The concatenated range of Not and Candidates
 		// There'll be node in Candidates anyway.
 		// TODO: Make use of degree, or something like that, to speed up this counting of disconnects?
 		Foreach(V v, frontier) {
 			int currentDiscs = 0;
-			ContainerRange<list<V> > testThese(Candidates);
+			ContainerRange<list_of_ints > testThese(Candidates);
 			Foreach(V v2, testThese) {
 				if(!g->are_connected(v, v2)) {
 					++currentDiscs;
@@ -131,8 +134,8 @@ static void cliquesWorker(const SimpleIntGraph &g, CliqueReceiver *send_cliques_
 		assert(fewestDisc <= int(Candidates.size()));
 	}
 	{
-			list<V> CandidatesCopy(Candidates);
-			ContainerRange<list<V> > useTheDisconnected(CandidatesCopy);
+			list_of_ints CandidatesCopy(Candidates);
+			ContainerRange<list_of_ints > useTheDisconnected(CandidatesCopy);
 			Foreach(V v, useTheDisconnected) {
 				unless(Candidates.size() + Compsub.size() >= minimumSize) return;
 				if(fewestDisc >0 && v!=fewestDiscVertex && !g->are_connected(v, fewestDiscVertex)) {
