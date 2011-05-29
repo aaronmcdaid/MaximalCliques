@@ -1,5 +1,4 @@
 #include "cliques.hpp"
-#include "graph_utils.hpp"
 #include <set>
 
 namespace cliques {
