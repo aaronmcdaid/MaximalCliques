@@ -1,4 +1,4 @@
-justTheCliques:   Find maximal cliques, via the Bron Kerbosch algorithm.
+justTheCliques:   Find maximal cliques, via the Bron Kerbosch algorithm, http://en.wikipedia.org/wiki/Bron%E2%80%93Kerbosch_algorithm
 
 == Copyright ==
 
@@ -17,4 +17,3 @@ or
 to focus only on cliques with at least 10 nodes in them - this should be a little faster
 
 
-http://en.wikipedia.org/wiki/Bron%E2%80%93Kerbosch_algorithm
