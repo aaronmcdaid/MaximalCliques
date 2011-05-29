@@ -184,6 +184,16 @@ void cliquesToStdout(const graph :: NetworkInterfaceConvertedToString * net, uns
 	cerr << send_cliques_here.n << " cliques found" << endl;
 }
 
+static int32_t count_disconnections(const list_of_ints &Candidates, const int32_t v, const SimpleIntGraph &g) {
+	int currentDiscs = 0;
+	for( list_of_ints :: const_iterator i = Candidates.begin(); i != Candidates.end(); i++) {
+		V v2 = *i;
+		if(!g->are_connected(v, v2)) {
+			++currentDiscs;
+		}
+	}
+	return currentDiscs;
+}
 static void find_node_with_fewest_discs(int &fewestDisc, int &fewestDiscVertex, bool &fewestIsInCands, list_of_ints &Not, list_of_ints &Candidates, const SimpleIntGraph &g) {
 		ContainerRange<list_of_ints > nRange(Not);
 		ContainerRange<list_of_ints > cRange(Candidates);
@@ -191,13 +201,7 @@ static void find_node_with_fewest_discs(int &fewestDisc, int &fewestDiscVertex, 
 		// There'll be node in Candidates anyway.
 		// TODO: Make use of degree, or something like that, to speed up this counting of disconnects?
 		Foreach(V v, frontier) {
-			int currentDiscs = 0;
-			ContainerRange<list_of_ints > testThese(Candidates);
-			Foreach(V v2, testThese) {
-				if(!g->are_connected(v, v2)) {
-					++currentDiscs;
-				}
-			}
+			const int currentDiscs = count_disconnections(Candidates, v, g);
 			if(currentDiscs < fewestDisc) {
 				fewestDisc = currentDiscs;
 				fewestDiscVertex = v;
