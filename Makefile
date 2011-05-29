@@ -37,4 +37,4 @@ LDFLAGS+= -lstdc++ -lrt ${PROFILE}
 CXXFLAGS= ${BITS} -O3        ${CFLAGS} # -DNDEBUG
 #CXXFLAGS=              -O2                 
 
-justTheCliques: justTheCliques.o Range.o cliques.o graph_utils.o graph/weights.o graph/strings.o graph/loading.o graph/network.o graph/saving.o graph/graph.o graph/bloom.o
+justTheCliques: justTheCliques.o Range.o cliques.o graph/weights.o graph/loading.o graph/network.o graph/saving.o graph/graph.o graph/bloom.o
