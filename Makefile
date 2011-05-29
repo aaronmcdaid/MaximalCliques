@@ -34,7 +34,7 @@ boost_1_41_0:
 #CXXFLAGS= ${BITS}     -g
 LDFLAGS+= -lstdc++ -lrt ${PROFILE}
 #CXXFLAGS= ${BITS} -O3 -p -pg ${CFLAGS} # -DNDEBUG
-CXXFLAGS= ${BITS}            ${CFLAGS} # -DNDEBUG
+CXXFLAGS= ${BITS} -O3        ${CFLAGS} # -DNDEBUG
 #CXXFLAGS=              -O2                 
 
 justTheCliques: shmGraphRaw.o justTheCliques.o Range.o cliques.o graph_utils.o graph/weights.o graph/strings.o graph/loading.o graph/network.o graph/saving.o graph/graph.o
