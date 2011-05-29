@@ -24,8 +24,8 @@ BloomAreConnected :: BloomAreConnected ( const VerySimpleGraphInterface * vsg ) 
 			++ num_clashes;
 		this->bloom.at(h % bloom.size()) = true;
 	}
-	std :: cerr << "num_trues " << num_trues << std :: endl;
-	std :: cerr << "num_clashes " << num_clashes << std :: endl;
+	// std :: cerr << "num_trues " << num_trues << std :: endl;
+	// std :: cerr << "num_clashes " << num_clashes << std :: endl;
 }
 size_t BloomAreConnected :: hash( const VerySimpleGraphInterface * vsg, const int32_t rel_id )  const {
 	assert(vsg);
