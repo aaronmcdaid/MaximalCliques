@@ -16,7 +16,8 @@ struct CliqueReceiver {
 };
 
 static void cliquesForOneNode(const SimpleIntGraph &g, CliqueReceiver *send_cliques_here, int minimumSize, V v) {
-	if(g->degree(v) + 1 < minimumSize)
+	const int d = g->get_plain_graph()->degree(v);
+	if(d + 1 < minimumSize)
 		return; // Obviously no chance of a clique if the degree is too small.
 
 
@@ -45,8 +46,8 @@ static void cliquesForOneNode(const SimpleIntGraph &g, CliqueReceiver *send_cliq
 		}
 	}
 
-	//copy(neighbours_of_v.first, split, back_inserter(Not));
-	//copy(split, neighbours_of_v.second, back_inserter(Candidates));
+	assert(d == int(Not.size() + Candidates.size()));
+
 	cliquesWorker(g, send_cliques_here, minimumSize, Compsub, Not, Candidates);
 }
 
@@ -79,32 +80,38 @@ static void cliquesWorker(const SimpleIntGraph &g, CliqueReceiver *send_cliques_
 	unless(Candidates.size() + Compsub.size() >= minimumSize) return;
 
 	if(Candidates.empty()) { // No more cliques to be found. This is the (local) maximal clique.
-		if(Not.empty() && Compsub.size() >= minimumSize) send_cliques_here->operator()(Compsub);
+		if(Not.empty() && Compsub.size() >= minimumSize)
+			send_cliques_here->operator()(Compsub);
 		return;
 	}
 
-	// We know Candidates is not empty. Must find the element, in Not or in Candidates, that is most connected to the (other) Candidates
-	{ //version 2. Count disconnections-to-Candidates
-		int fewestDisc = 1+Candidates.size();
-		V fewestDiscVertex = Candidates.front();
-		bool fewestIsInCands = false;
-#define dout dummyOutputStream
+	assert(!Candidates.empty());
 
+
+	/*
+	 * version 2. Count disconnections-to-Candidates
+	 */
+
+	// We know Candidates is not empty. Must find the element, in Not or in Candidates, that is most connected to the (other) Candidates
+	int fewestDisc = INT_MAX;
+	V fewestDiscVertex = Candidates.front();
+	bool fewestIsInCands = false;
+	{
 		ContainerRange<list<V> > nRange(Not);
 		ContainerRange<list<V> > cRange(Candidates);
 		ChainedRange<ContainerRange<list<V> > >  frontier(nRange, cRange); // The concatenated range of Not and Candidates
+		// There'll be node in Candidates anyway.
 		// TODO: Make use of degree, or something like that, to speed up this counting of disconnects?
 		Foreach(V v, frontier) {
 			int currentDiscs = 0;
-			// dout << v << ": ";
 			ContainerRange<list<V> > testThese(Candidates);
 			Foreach(V v2, testThese) {
 				if(!g->get_plain_graph()->are_connected(v, v2)) {
-					// dout << "disconnected: (" << v << ',' << v2 << ") ";
 					++currentDiscs;
 				}
 			}
-			// dout << '\n';
+			{ // count the *connections* from v to Candidates
+			}
 			if(currentDiscs < fewestDisc) {
 				fewestDisc = currentDiscs;
 				fewestDiscVertex = v;
@@ -112,15 +119,14 @@ static void cliquesWorker(const SimpleIntGraph &g, CliqueReceiver *send_cliques_
 				if(!fewestIsInCands && fewestDisc==0) return; // something in Not is connected to everything in Cands. Just give up now!
 			}
 		}
-		// dout << (fewestIsInCands ? 'c' : ' ') << ' ' << fewestDiscVertex << '(' << fewestDisc << ')' << '\n';
-
-		{
+		assert(fewestDisc <= int(Candidates.size()));
+	}
+	{
 			list<V> CandidatesCopy(Candidates);
 			ContainerRange<list<V> > useTheDisconnected(CandidatesCopy);
 			Foreach(V v, useTheDisconnected) {
 				unless(Candidates.size() + Compsub.size() >= minimumSize) return;
 				if(fewestDisc >0 && v!=fewestDiscVertex && !g->get_plain_graph()->are_connected(v, fewestDiscVertex)) {
-					// dout << "Into Not " << v << '\n';
 					unless(Candidates.size() + Compsub.size() >= minimumSize) return;
 					// forEach(int cand, amd::mk_range(Candidates)) { PP(cand); }
 					// PP(v);
@@ -130,15 +136,13 @@ static void cliquesWorker(const SimpleIntGraph &g, CliqueReceiver *send_cliques_
 					--fewestDisc;
 				}
 			}
-			// dout << "fewestDisc==0  " << fewestDisc << '\n';
-		}
+	}
 		// assert(fewestDisc == 0);
-		if(fewestIsInCands) { // The most disconnected node was in the Cands.
+	if(fewestIsInCands) { // The most disconnected node was in the Cands.
 			unless(Candidates.size() + Compsub.size() >= minimumSize) return;
 			Candidates.erase(lower_bound(Candidates.begin(),Candidates.end(),fewestDiscVertex));
 			tryCandidate(g, send_cliques_here, minimumSize, Compsub, Not, Candidates, fewestDiscVertex);
 			// No need as we're about to return...  Not.insert(lower_bound(Not.begin(), Not.end(), fewestDiscVertex) ,fewestDiscVertex); // we MUST keep the list Not in order
-		}
 	}
 
 #if 0
@@ -156,7 +160,7 @@ struct CliquesToStdout : public CliqueReceiver {
 	int n;
 	const SimpleIntGraph *g;
 	CliquesToStdout(const SimpleIntGraph &_g) : n(0), g(&_g) {}
-	void operator () (const vector<V> & Compsub) {
+	virtual void operator () (const vector<V> & Compsub) {
 		bool firstField = true;
 		if(Compsub.size() >= 3) {
 			ForeachContainer(V v, Compsub) {
@@ -166,7 +170,7 @@ struct CliquesToStdout : public CliqueReceiver {
 				firstField = false;
 			}
 			std :: cout << endl;
-			n++;
+			this -> n++;
 		}
 	}
 };
