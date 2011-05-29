@@ -53,24 +53,7 @@ public:
 					h = m;
 			}
 		}
-		for(size_t x = 0; x < neigh_rels.size(); x++) {
-			const int32_t relId = neigh_rels.at(x);
-			const std :: pair <int32_t, int32_t> & eps = this->EndPoints(relId);
-			if(eps.first == node_id1) {
-				if(eps.second == node_id2) {
-					assert(conn == true);
-					return true;
-				}
-			} else {
-				assert(eps.second == node_id1);
-				if(eps.first == node_id2) {
-					assert(conn == true);
-					return true;
-				}
-			}
-		}
-		assert(conn == false);
-		return false;
+		return conn;
 	}
 };
 
