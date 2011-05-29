@@ -14,7 +14,7 @@ tags:
 
 					#-Wclobbered   -Wempty-body   \ -Wignored-qualifiers  -Woverride-init   \ -Wtype-limits   -Wunused-but-set-parameter 
 # I'm including most of the -Wextra flags, but I want rid of the enum-in-conditional warning from boost
-PROFILE=-p -pg
+#PROFILE=-p -pg -DNDEBUG
 CFLAGS=       \
           -Wmissing-field-initializers   \
           -Wsign-compare   \
