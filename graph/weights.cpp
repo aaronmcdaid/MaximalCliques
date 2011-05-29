@@ -12,8 +12,8 @@ namespace weights {
 	EdgeDetailsInterface :: ~EdgeDetailsInterface() {
 	}
 	template <class W>
-	int EdgeDetails<W> :: size() const {
-		return this->dw.size();
+	int32_t EdgeDetails<W> :: size() const {
+		return int32_t(this->dw.size());
 	}
 	template <class W>
 	void EdgeDetails<W> :: new_rel(const int relId, std :: pair<int,int> nodeIds, std :: string &weight) {

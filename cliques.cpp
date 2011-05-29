@@ -252,7 +252,7 @@ static int32_t count_disconnections(const set<int> &cands, const int32_t v, cons
 			, v_neighs.begin(), v_neighs.end()
 			, back_inserter(intersection)
 			);
-	const int num_connections = intersection.size();
+	const int32_t num_connections = int32_t(intersection.size());
 
 	/*
 	int currentDiscs = 0;
@@ -266,7 +266,7 @@ static int32_t count_disconnections(const set<int> &cands, const int32_t v, cons
 	assert( currentDiscs + num_connections == int(cands.size()) );
 	return currentDiscs;
 	*/
-	return cands.size() - num_connections;
+	return int32_t(cands.size() - num_connections);
 
 
 }

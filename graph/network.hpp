@@ -28,7 +28,7 @@ struct NodeNameIsInt32 {
 		assert(!s.empty());
 		value_type i;
 		char *end_ptr;
-		i = strtol(s.c_str(), &end_ptr, 10);
+		i = int32_t(strtol(s.c_str(), &end_ptr, 10));
 		if(*end_ptr == '\0') // success, according to http://linux.die.net/man/3/strtol
 			return i;
 		else

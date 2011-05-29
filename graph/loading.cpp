@@ -73,7 +73,7 @@ public:
 #ifdef USE_BLOOM_FILTER
 	virtual bool are_connected(int32_t node_id_1, int32_t node_id_2) const { // I'll reimplement this with graph :: bloom :: BloomAreConnected
 		assert(this->bloom.get());
-		const bool according_to_bloom = this->bloom->test( this, node_id_1, node_id_2 );
+		const bool according_to_bloom = this->bloom->test( node_id_1, node_id_2 );
 		if(according_to_bloom == false) {
 			return false;
 		}
@@ -98,7 +98,7 @@ struct ModifiableNetwork : public NetworkInterface<NodeNameT> { // NetworkInterf
 	}
 	int32_t find_ordered_node_names_offset(const t &node_name) {
 		// node_name must be in this->ordered_node_names. Now to find *where* it is.
-		const int32_t offset = lower_bound(this->ordered_node_names.begin(), this->ordered_node_names.end(), node_name) - this->ordered_node_names.begin();
+		const int32_t offset = int32_t(lower_bound(this->ordered_node_names.begin(), this->ordered_node_names.end(), node_name) - this->ordered_node_names.begin());
 		assert( this->ordered_node_names.at(offset) == node_name);
 		return offset;
 	}
@@ -195,8 +195,8 @@ static void read_edge_list_from_file(ModifiableNetwork<NodeNameT> *modifiable_ne
 		assert(set_of_relationships.size() == tmp_ordered_relationships.size());
 	}
 
-	const int32_t N = modifiable_network->ordered_node_names.size();
-	const int32_t R = tmp_ordered_relationships.size();
+	const int32_t N = int32_t(modifiable_network->ordered_node_names.size());
+	const int32_t R = int32_t(tmp_ordered_relationships.size());
 
 	vector< vector<int32_t> > tmp_node_to_relationships_map(N);
 	vector< vector<int32_t> > tmp_node_to_neighbours_map(N);
@@ -241,7 +241,7 @@ static void read_edge_list_from_file(ModifiableNetwork<NodeNameT> *modifiable_ne
 			int32_t another_node_id = target_node_id;
 			if(one_node_id > another_node_id)
 				swap(one_node_id, another_node_id);
-			int32_t relationship_id = lower_bound(tmp_ordered_relationships.begin(), tmp_ordered_relationships.end(), make_pair(one_node_id, another_node_id)) - tmp_ordered_relationships.begin();
+			int32_t relationship_id = int32_t(lower_bound(tmp_ordered_relationships.begin(), tmp_ordered_relationships.end(), make_pair(one_node_id, another_node_id)) - tmp_ordered_relationships.begin());
 			assert( tmp_ordered_relationships.at(relationship_id).first  == one_node_id );
 			assert( tmp_ordered_relationships.at(relationship_id).second == another_node_id );
 			if(verbose) PP3(relationship_id, source_node_id, target_node_id);

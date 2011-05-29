@@ -16,7 +16,7 @@ void RangeOverStream::nextLine() {
 		getline(istr, currentLine, delims[0]);
 	else
 		while(istr.peek() != EOF) {
-			char c = istr.get();
+			char c = char(istr.get());
 			if(strchr(delims, c))
 				break;
 			currentLine.push_back(c);

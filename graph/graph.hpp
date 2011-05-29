@@ -20,7 +20,7 @@ public:
 	virtual ~ VerySimpleGraphInterface() {}
 	virtual const std :: vector<int32_t> & neighbouring_rels_in_order(const int32_t node_id) const = 0;
 	virtual const std :: vector<int32_t> & neighbouring_nodes_in_order(const int32_t node_id) const = 0;
-	virtual int degree(const int32_t node_id) const { return this->neighbouring_rels_in_order(node_id).size(); }
+	virtual int32_t degree(const int32_t node_id) const { return int32_t(this->neighbouring_rels_in_order(node_id).size()); }
 	virtual bool are_connected(int32_t node_id_1, int32_t node_id_2) const { // TODO: could be faster, making use of the fact that various structures are sorted (binary_search)
 		if(this->degree(node_id_2) < this->degree(node_id_1))
 			std :: swap(node_id_2, node_id_1);
@@ -61,7 +61,7 @@ public:
 	bool at_end() const {
 		return i == i_end;
 	}
-	value_type operator*() {
+	int32_t operator*() {
 		assert( ! this->at_end() );
 		return * this->i;
 	}
@@ -105,7 +105,7 @@ public:
 		assert(vsg);
 		return i == i_end;
 	}
-	value_type operator*() {
+	int32_t operator*() {
 		assert(vsg);
 		assert( ! this->at_end() );
 		const int32_t rel_id = *this->i;

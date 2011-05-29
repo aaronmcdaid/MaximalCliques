@@ -22,7 +22,7 @@ CFLAGS=   \
           -Wunused-parameter    \
           -Wunused             \
           -Wnon-virtual-dtor \
-          -Wall -Wformat -Werror ${PROFILE}
+          -Wall -Wformat -Werror ${PROFILE} -Wextra -Wconversion
           #-Wuninitialized   \
 
 

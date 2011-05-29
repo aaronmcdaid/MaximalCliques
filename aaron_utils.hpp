@@ -137,7 +137,7 @@ struct Timer {
 	double age() const {
 		struct timeval end;
 		gettimeofday(&end, NULL);
-		double diff = end.tv_sec - start.tv_sec + 1e-6 * (end.tv_usec - start.tv_usec);
+		double diff = double(end.tv_sec - start.tv_sec) + 1e-6 * double(end.tv_usec - start.tv_usec);
 		return diff;
 	}
 	~Timer() {
