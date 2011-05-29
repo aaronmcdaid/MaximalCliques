@@ -31,6 +31,6 @@ int main(int argc, char **argv) {
 		<< network.get()->numNodes() << " nodes and " << network.get()->numRels() << " edges."
 	       << endl;
 	// cliques::cliquesToStdout(g.get(), k);
-	cliques::cliquesToStdout(network.get(), k);
+	cliques :: cliquesToStdout(network.get(), k);
 
 }
