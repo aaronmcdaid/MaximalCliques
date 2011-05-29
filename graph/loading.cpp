@@ -52,6 +52,7 @@ public:
 	int N, R;
 	vector< pair<int32_t,int32_t> > ordered_relationships; // the relationships, to be ordered by the node_ids inside them. .first <= .second
 	vector< vector<int32_t> > node_to_relationships_map; // for each node, the *relationships* it is in. In order
+	vector< vector<int32_t> > node_to_neighbours_map;    // for each node, its neighbours. In order
 #ifdef USE_BLOOM_FILTER
 	std :: auto_ptr<const graph :: bloom :: BloomAreConnected> bloom;
 	std :: tr1 :: unordered_set< pair<int32_t, int32_t>, hash_pair_of_ints > uset_of_connected_nodes;
@@ -65,6 +66,9 @@ public:
 	virtual const std :: pair<int32_t, int32_t> & EndPoints(int32_t rel_id) const { assert(rel_id >= 0 && rel_id < this->R); return this->ordered_relationships.at(rel_id); }
 	virtual const std :: vector<int32_t> & neighbouring_rels_in_order(const int32_t node_id) const {
 		return this->node_to_relationships_map.at(node_id);
+	}
+	virtual const std :: vector<int32_t> & neighbouring_nodes_in_order(const int32_t node_id) const {
+		return this->node_to_neighbours_map.at(node_id);
 	}
 #ifdef USE_BLOOM_FILTER
 	virtual bool are_connected(int32_t node_id_1, int32_t node_id_2) const { // I'll reimplement this with graph :: bloom :: BloomAreConnected
@@ -195,20 +199,28 @@ static void read_edge_list_from_file(ModifiableNetwork<NodeNameT> *modifiable_ne
 	const int32_t R = tmp_ordered_relationships.size();
 
 	vector< vector<int32_t> > tmp_node_to_relationships_map(N);
+	vector< vector<int32_t> > tmp_node_to_neighbours_map(N);
 	{ // before the third phase (reading weights), we able to complete the VSG object, by populating the list of relationships.
 		for(int r = 0; r < R; r++) {
 			const pair<int32_t, int32_t> rel = tmp_ordered_relationships.at(r);
 			tmp_node_to_relationships_map.at(rel.first).push_back(r);
-			if(rel.first != rel.second)
+			tmp_node_to_neighbours_map.at(rel.first).push_back(rel.second);
+			if(rel.first != rel.second) {
 				tmp_node_to_relationships_map.at(rel.second).push_back(r);
+				tmp_node_to_neighbours_map.at(rel.second).push_back(rel.first);
+			}
 		}
 		// each individual vector should, I think, now be already sorted. I will now check that to be sure!
 		for(int n=0; n<N; n++) {
 			const vector<int32_t> & one_nodes_rels = tmp_node_to_relationships_map.at(n);
+			assert(one_nodes_rels.size() == tmp_node_to_neighbours_map.at(n).size());
 			int x = std :: numeric_limits<int>().min()  ;
+			int x2 = std :: numeric_limits<int>().min()  ;
 			for (size_t i = 0; i < one_nodes_rels.size(); i++) {
 				assert(x < one_nodes_rels.at(i));
 				x = one_nodes_rels.at(i);
+				assert(x2< tmp_node_to_neighbours_map.at(n).at(i));
+				x2= tmp_node_to_neighbours_map.at(n).at(i);
 			}
 		}
 
@@ -240,6 +252,7 @@ static void read_edge_list_from_file(ModifiableNetwork<NodeNameT> *modifiable_ne
 	MyVSG * tmp_plain_graph = new MyVSG();
 	tmp_plain_graph->ordered_relationships.swap(tmp_ordered_relationships);
 	tmp_plain_graph->node_to_relationships_map.swap(tmp_node_to_relationships_map);
+	tmp_plain_graph->node_to_neighbours_map.swap(tmp_node_to_neighbours_map);
 	tmp_plain_graph->N = N;
 	tmp_plain_graph->R = R;
 

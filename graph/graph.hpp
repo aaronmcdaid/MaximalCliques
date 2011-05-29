@@ -19,6 +19,7 @@ public:
 	virtual const std :: pair<int32_t, int32_t> & EndPoints(int relId) const = 0;
 	virtual ~ VerySimpleGraphInterface() {}
 	virtual const std :: vector<int32_t> & neighbouring_rels_in_order(const int32_t node_id) const = 0;
+	virtual const std :: vector<int32_t> & neighbouring_nodes_in_order(const int32_t node_id) const = 0;
 	virtual int degree(const int32_t node_id) const { return this->neighbouring_rels_in_order(node_id).size(); }
 	virtual bool are_connected(int32_t node_id1, int32_t node_id2) const { // TODO: could be faster, making use of the fact that various structures are sorted (binary_search)
 		if(this->degree(node_id2) < this->degree(node_id1))
