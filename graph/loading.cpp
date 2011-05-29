@@ -261,6 +261,7 @@ static void read_edge_list_from_file(ModifiableNetwork<NodeNameT> *modifiable_ne
 	for(int r=0; r<R; r++) {
 		tmp_plain_graph->uset_of_connected_nodes.insert ( tmp_plain_graph->ordered_relationships.at(r) );
 	}
+	assert((int)tmp_plain_graph->uset_of_connected_nodes.size() == R);
 	tmp_plain_graph->bloom.reset(new graph :: bloom :: BloomAreConnected( tmp_plain_graph ));
 #endif
 
