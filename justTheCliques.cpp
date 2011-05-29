@@ -1,5 +1,4 @@
 using namespace std;
-#include "shmGraphRaw.hpp"
 #include "graph/network.hpp"
 #include "graph/loading.hpp"
 #include <getopt.h>
@@ -25,12 +24,11 @@ int main(int argc, char **argv) {
 	}
 
 
-	auto_ptr<shmGraphRaw::ReadableShmGraphTemplate<shmGraphRaw::PlainMem> > g (shmGraphRaw::loadEdgeList<shmGraphRaw::PlainMem>(edgeListFileName));
         std :: auto_ptr<graph :: NetworkInt32 > network = graph :: loading :: make_Network_from_edge_list_int32(edgeListFileName, 0, 0);
 
 	cerr << "Network loaded"
 	       << " after " << (double(clock()) / CLOCKS_PER_SEC) << " seconds. "
-		<< g->numNodes() << " nodes and " << g->numRels() << " edges."
+		<< network.get()->numNodes() << " nodes and " << network.get()->numRels() << " edges."
 	       << endl;
 	// cliques::cliquesToStdout(g.get(), k);
 	cliques::cliquesToStdout(network.get(), k);
