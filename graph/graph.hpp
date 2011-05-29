@@ -2,11 +2,11 @@
 #define _GRAPH_HPP_
 
 #include <utility>
+#include <algorithm>
 #include <vector>
 #include <cassert>
 #include <stdint.h>
 #include <iterator>
-// #include <iostream>
 
 namespace graph {
 
@@ -21,40 +21,12 @@ public:
 	virtual const std :: vector<int32_t> & neighbouring_rels_in_order(const int32_t node_id) const = 0;
 	virtual const std :: vector<int32_t> & neighbouring_nodes_in_order(const int32_t node_id) const = 0;
 	virtual int degree(const int32_t node_id) const { return this->neighbouring_rels_in_order(node_id).size(); }
-	virtual bool are_connected(int32_t node_id1, int32_t node_id2) const { // TODO: could be faster, making use of the fact that various structures are sorted (binary_search)
-		if(this->degree(node_id2) < this->degree(node_id1))
-			std :: swap(node_id2, node_id1);
-		// node 1 is the low-degree node. Check through it's neighbouring rels
-		const std :: vector<int32_t> & neigh_rels = this->neighbouring_rels_in_order(node_id1); // TODO
-		bool conn = false;
-		{ // a binary search in neigh_rels, to see if node_id2 is present
-			int l = 0;
-			int h = neigh_rels.size();
-			// std :: cout << "neigh_rels.size() " << neigh_rels.size() << std :: endl;
-			while(l < h) {
-				int m = (l+h) / 2;
-				assert(m>=l && m < h);
-				// std :: cout << l << " " << h << " " << m << std :: endl;
-				const int mid_rel = neigh_rels.at(m);
-				const std :: pair <int32_t, int32_t> & eps = this->EndPoints(mid_rel);
-				int mid_node;
-				if(eps.first == node_id1) {
-					mid_node = eps.second;
-				} else {
-					assert(eps.second == node_id1);
-					mid_node = eps.first;
-				}
-				if(mid_node == node_id2) {
-					conn = true;
-					break;
-				}
-				if(mid_node < node_id2)
-					l = m+1; // the mid node is too small. skip over it
-				if(mid_node > node_id2)
-					h = m;
-			}
-		}
-		return conn;
+	virtual bool are_connected(int32_t node_id_1, int32_t node_id_2) const { // TODO: could be faster, making use of the fact that various structures are sorted (binary_search)
+		if(this->degree(node_id_2) < this->degree(node_id_1))
+			std :: swap(node_id_2, node_id_1);
+		// node 1 is the low-degree node. Check through it's neighbours for node 2
+		const std :: vector<int32_t> & neigh_nodes = this->neighbouring_nodes_in_order(node_id_1);
+		return std :: binary_search(neigh_nodes.begin(), neigh_nodes.end(), node_id_2);
 	}
 };
 
