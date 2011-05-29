@@ -6,6 +6,7 @@
 #include <cassert>
 #include <stdint.h>
 #include <iterator>
+// #include <iostream>
 
 namespace graph {
 
@@ -24,18 +25,51 @@ public:
 			std :: swap(node_id2, node_id1);
 		// node 1 is the low-degree node. Check through it's neighbouring rels
 		const std :: vector<int32_t> & neigh_rels = this->neighbouring_rels_in_order(node_id1); // TODO
+		bool conn = false;
+		{ // a binary search in neigh_rels, to see if node_id2 is present
+			int l = 0;
+			int h = neigh_rels.size();
+			// std :: cout << "neigh_rels.size() " << neigh_rels.size() << std :: endl;
+			while(l < h) {
+				int m = (l+h) / 2;
+				assert(m>=l && m < h);
+				// std :: cout << l << " " << h << " " << m << std :: endl;
+				const int mid_rel = neigh_rels.at(m);
+				const std :: pair <int32_t, int32_t> & eps = this->EndPoints(mid_rel);
+				int mid_node;
+				if(eps.first == node_id1) {
+					mid_node = eps.second;
+				} else {
+					assert(eps.second == node_id1);
+					mid_node = eps.first;
+				}
+				if(mid_node == node_id2) {
+					conn = true;
+					break;
+				}
+				if(mid_node < node_id2)
+					l = m+1; // the mid node is too small. skip over it
+				if(mid_node > node_id2)
+					h = m;
+			}
+		}
 		for(size_t x = 0; x < neigh_rels.size(); x++) {
 			const int32_t relId = neigh_rels.at(x);
 			const std :: pair <int32_t, int32_t> & eps = this->EndPoints(relId);
 			if(eps.first == node_id1) {
-				if(eps.second == node_id2)
+				if(eps.second == node_id2) {
+					assert(conn == true);
 					return true;
+				}
 			} else {
 				assert(eps.second == node_id1);
-				if(eps.first == node_id2)
+				if(eps.first == node_id2) {
+					assert(conn == true);
 					return true;
+				}
 			}
 		}
+		assert(conn == false);
 		return false;
 	}
 };
