@@ -8,7 +8,7 @@ namespace bloom {
 BloomAreConnected :: BloomAreConnected ( const VerySimpleGraphInterface * vsg ) {
 	assert(vsg);
 	const int32_t R = vsg->numRels();
-	const size_t sz = 1000000000;
+	const size_t sz = 100 * R;
 	assert(this->bloom.size()==0);
 	this->bloom.resize(sz);
 	assert(this->bloom.size()==sz);
