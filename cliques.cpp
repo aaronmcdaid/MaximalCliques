@@ -1,5 +1,6 @@
 #include "cliques.hpp"
 #include <set>
+#include <map>
 #include <list>
 #include <vector>
 #include <stdexcept>
@@ -200,6 +201,7 @@ static void cliquesWorker(const SimpleIntGraph &g, CliqueReceiver *send_cliques_
 
 struct CliquesToStdout : public CliqueReceiver {
 	int n;
+	std :: map<size_t, int32_t> cliqueFrequencies;
 	const graph :: NetworkInterfaceConvertedToString *g;
 	CliquesToStdout(const graph :: NetworkInterfaceConvertedToString *_g) : n(0), g(_g) {}
 	virtual void operator () (const vector<V> & Compsub) {
@@ -207,6 +209,7 @@ struct CliquesToStdout : public CliqueReceiver {
 		sort(Compsub_ordered.begin(), Compsub_ordered.end());
 		bool firstField = true;
 		if(Compsub_ordered.size() >= 3) {
+			++ this -> cliqueFrequencies[Compsub_ordered.size()];
 			for(vector<V> :: const_iterator v = Compsub_ordered.begin(); v != Compsub_ordered.end(); ++v) {
 				if(!firstField)
 					std :: cout	<< ' ';
@@ -232,7 +235,7 @@ static void findCliques(const SimpleIntGraph &g, CliqueReceiver *send_cliques_he
 
 	for(V v = 0; v < (V) g->numNodes(); v++) {
 		if(v && v % 100 ==0)
-			cerr << "node: " << v << endl;
+			cerr << "processing node: " << v << " ..." <<  endl;
 		cliquesForOneNode(g, send_cliques_here, minimumSize, v);
 	}
 }
@@ -241,6 +244,14 @@ void cliquesToStdout(const graph :: NetworkInterfaceConvertedToString * net, uns
 	CliquesToStdout send_cliques_here(net);
 	findCliques(net->get_plain_graph(), & send_cliques_here, minimumSize);
 	cerr << send_cliques_here.n << " cliques found" << endl;
+	if(send_cliques_here.n > 0) {
+		assert(!send_cliques_here.cliqueFrequencies.empty());
+		const size_t biggest_clique_found = send_cliques_here.cliqueFrequencies.rbegin()->first;
+		for(size_t i = minimumSize; i <= biggest_clique_found; i++) {
+			cerr << send_cliques_here.cliqueFrequencies[i] << "\t#" << i << endl;
+		}
+	}
+
 }
 
 static int32_t count_disconnections(const set<int> &cands, const int32_t v, const SimpleIntGraph &g) {

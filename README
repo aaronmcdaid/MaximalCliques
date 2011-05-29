@@ -11,9 +11,16 @@ Licensed under GPL v3. See gpl.txt included with this package.
 
 == Usage ==
 
-	./justTheCliques edge_list.txt
-or
-	./justTheCliques edge_list.txt 10
-to focus only on cliques with at least 10 nodes in them - this should be a little faster
+	./justTheCliques edge_list.txt       > cliques.txt
+
+or, if you just want cliques with at least 10 nodes in them,
+
+	./justTheCliques edge_list.txt 10       > cliques.txt
+
+this should be a little faster.
+The cliques themselves are printed to stdout (hence the redirection above). Various
+summary stats are printed on stderr. So, if you didn't want the cliques but
+did want to see the sizes of the cliques found, to
+	./justTheCliques edge_list.txt       > /dev/null
 
 
