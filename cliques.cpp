@@ -16,7 +16,7 @@ struct CliqueReceiver {
 };
 
 static void cliquesForOneNode(const SimpleIntGraph &g, CliqueReceiver *send_cliques_here, int minimumSize, V v) {
-	const int d = g->get_plain_graph()->degree(v);
+	const int d = g->degree(v);
 	if(d + 1 < minimumSize)
 		return; // Obviously no chance of a clique if the degree is too small.
 
@@ -30,7 +30,7 @@ static void cliquesForOneNode(const SimpleIntGraph &g, CliqueReceiver *send_cliq
 	// copy those above the split into Candidates
 	// there shouldn't ever be a neighbour equal to the split, this'd mean a self-loop
 	{
-		graph :: neighbouring_node_id_iterator ns(g->get_plain_graph(), v);
+		graph :: neighbouring_node_id_iterator ns(g, v);
 		int32_t last_neighbour_id = -1;
 		while( !ns.at_end() ) {
 			const int neighbour_id = *ns;
@@ -52,16 +52,17 @@ static void cliquesForOneNode(const SimpleIntGraph &g, CliqueReceiver *send_cliq
 }
 
 static inline void tryCandidate (const SimpleIntGraph & g, CliqueReceiver *send_cliques_here, unsigned int minimumSize, vector<V> & Compsub, const list<V> & Not, const list<V> & Candidates, const V selected) {
-	Compsub.push_back(selected);
+	assert(!Compsub.empty());
+	Compsub.push_back(selected); // Compsub does *not* have to be ordered. I might try to enforce that in future though.
 
 	list<V> CandidatesNew_;
 	list<V> NotNew_;
 	{
-		graph :: neighbouring_node_id_iterator ns(g->get_plain_graph(), selected);
+		graph :: neighbouring_node_id_iterator ns(g, selected);
 		set_intersection(Candidates.begin()            , Candidates.end()
 	                ,ns, ns.end_marker()
 			,back_inserter(CandidatesNew_));
-		graph :: neighbouring_node_id_iterator ns2(g->get_plain_graph(), selected);
+		graph :: neighbouring_node_id_iterator ns2(g, selected);
 		set_intersection(Not.begin()                 , Not.end()
 	                ,ns2, ns2.end_marker()
 			,back_inserter(NotNew_));
@@ -106,7 +107,7 @@ static void cliquesWorker(const SimpleIntGraph &g, CliqueReceiver *send_cliques_
 			int currentDiscs = 0;
 			ContainerRange<list<V> > testThese(Candidates);
 			Foreach(V v2, testThese) {
-				if(!g->get_plain_graph()->are_connected(v, v2)) {
+				if(!g->are_connected(v, v2)) {
 					++currentDiscs;
 				}
 			}
@@ -126,7 +127,7 @@ static void cliquesWorker(const SimpleIntGraph &g, CliqueReceiver *send_cliques_
 			ContainerRange<list<V> > useTheDisconnected(CandidatesCopy);
 			Foreach(V v, useTheDisconnected) {
 				unless(Candidates.size() + Compsub.size() >= minimumSize) return;
-				if(fewestDisc >0 && v!=fewestDiscVertex && !g->get_plain_graph()->are_connected(v, fewestDiscVertex)) {
+				if(fewestDisc >0 && v!=fewestDiscVertex && !g->are_connected(v, fewestDiscVertex)) {
 					unless(Candidates.size() + Compsub.size() >= minimumSize) return;
 					// forEach(int cand, amd::mk_range(Candidates)) { PP(cand); }
 					// PP(v);
@@ -158,8 +159,8 @@ static void cliquesWorker(const SimpleIntGraph &g, CliqueReceiver *send_cliques_
 
 struct CliquesToStdout : public CliqueReceiver {
 	int n;
-	const SimpleIntGraph *g;
-	CliquesToStdout(const SimpleIntGraph &_g) : n(0), g(&_g) {}
+	const graph :: NetworkInterfaceConvertedToString *g;
+	CliquesToStdout(const graph :: NetworkInterfaceConvertedToString *_g) : n(0), g(_g) {}
 	virtual void operator () (const vector<V> & Compsub) {
 		vector<V> Compsub_ordered(Compsub);
 		sort(Compsub_ordered.begin(), Compsub_ordered.end());
@@ -168,7 +169,7 @@ struct CliquesToStdout : public CliqueReceiver {
 			ForeachContainer(V v, Compsub_ordered) {
 				if(!firstField)
 					std :: cout	<< ' ';
-				std :: cout << (*g)->node_name_as_string(v);
+				std :: cout <<  g->node_name_as_string(v) ;
 				firstField = false;
 			}
 			std :: cout << endl;
@@ -186,10 +187,10 @@ static void findCliques(const SimpleIntGraph &g, CliqueReceiver *send_cliques_he
 		cliquesForOneNode(g, send_cliques_here, minimumSize, v);
 	}
 }
-void cliquesToStdout(SimpleIntGraph g_, unsigned int minimumSize /* = 3*/ ) {
+void cliquesToStdout(const graph :: NetworkInterfaceConvertedToString * net, unsigned int minimumSize /* = 3*/ ) {
 
-	CliquesToStdout send_cliques_here(g_);
-	findCliques(g_, & send_cliques_here, minimumSize);
+	CliquesToStdout send_cliques_here(net);
+	findCliques(net->get_plain_graph(), & send_cliques_here, minimumSize);
 	cerr << send_cliques_here.n << " cliques found" << endl;
 }
 

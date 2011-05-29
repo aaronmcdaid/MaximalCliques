@@ -16,11 +16,11 @@
 
 using namespace std;
 
-typedef const graph :: NetworkInt32 * SimpleIntGraph;
+typedef const graph :: VerySimpleGraphInterface * SimpleIntGraph;
 
 namespace cliques {
 
-void cliquesToStdout          (SimpleIntGraph, unsigned int minimumSize); // You're not allowed to ask for the 2-cliques
+void cliquesToStdout          (const graph :: NetworkInterfaceConvertedToString * net, unsigned int minimumSize); // You're not allowed to ask for the 2-cliques
 
 } // namespace cliques
 
