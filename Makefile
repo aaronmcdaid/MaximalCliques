@@ -33,4 +33,4 @@ LDFLAGS+= ${PROFILE}
 CXXFLAGS= ${BITS}      ${CFLAGS} # -DNDEBUG
 #CXXFLAGS=              -O2                 
 
-justTheCliques: justTheCliques.o Range.o cliques.o graph/weights.o graph/loading.o graph/network.o graph/saving.o graph/graph.o graph/bloom.o
+justTheCliques: justTheCliques.o cliques.o graph/weights.o graph/loading.o graph/network.o graph/saving.o graph/graph.o graph/bloom.o

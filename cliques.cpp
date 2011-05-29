@@ -6,8 +6,7 @@
 #include <algorithm>
 #include <limits>
 #include <sys/stat.h>
-#include "Range.hpp"
-#include "aaron_utils.hpp"
+#include "pp.hpp"
 using namespace std;
 
 
@@ -199,7 +198,6 @@ static void cliquesWorker(const SimpleIntGraph &g, CliqueReceiver *send_cliques_
 	 */
 }
 
-
 struct CliquesToStdout : public CliqueReceiver {
 	int n;
 	const graph :: NetworkInterfaceConvertedToString *g;
@@ -209,10 +207,10 @@ struct CliquesToStdout : public CliqueReceiver {
 		sort(Compsub_ordered.begin(), Compsub_ordered.end());
 		bool firstField = true;
 		if(Compsub_ordered.size() >= 3) {
-			ForeachContainer(V v, Compsub_ordered) {
+			for(vector<V> :: const_iterator v = Compsub_ordered.begin(); v != Compsub_ordered.end(); ++v) {
 				if(!firstField)
 					std :: cout	<< ' ';
-				std :: cout <<  g->node_name_as_string(v) ;
+				std :: cout <<  g->node_name_as_string(*v) ;
 				firstField = false;
 			}
 			std :: cout << endl;
