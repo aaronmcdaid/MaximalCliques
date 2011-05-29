@@ -23,8 +23,8 @@ NetworkInterface<NodeNameT> :: ~ NetworkInterface() throw() {
 NetworkInterfaceConvertedToString :: ~ NetworkInterfaceConvertedToString() {
 }
 
-template NetworkInterface<NodeNameIsInt32>  :: NetworkInterface(const bool directed, const bool weighted);
+template NetworkInterface<NodeNameIsInt64>  :: NetworkInterface(const bool directed, const bool weighted);
 template NetworkInterface<NodeNameIsString> :: NetworkInterface(const bool directed, const bool weighted);
-template NetworkInterface<NodeNameIsInt32>  :: ~NetworkInterface();
+template NetworkInterface<NodeNameIsInt64>  :: ~NetworkInterface();
 template NetworkInterface<NodeNameIsString> :: ~NetworkInterface();
 } // namespace graph

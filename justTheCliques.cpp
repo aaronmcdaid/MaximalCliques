@@ -24,7 +24,7 @@ int main(int argc, char **argv) {
 	}
 
 
-        std :: auto_ptr<graph :: NetworkInt32 > network = graph :: loading :: make_Network_from_edge_list_int32(edgeListFileName, 0, 0);
+        std :: auto_ptr<graph :: NetworkInt64 > network = graph :: loading :: make_Network_from_edge_list_int64(edgeListFileName, 0, 0);
 
 	cerr << "Network loaded"
 	       << " after " << (double(clock()) / CLOCKS_PER_SEC) << " seconds. "

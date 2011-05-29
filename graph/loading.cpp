@@ -29,7 +29,7 @@ struct ModifiableNetwork;
 template <class NodeNameT>
 static void read_edge_list_from_file(ModifiableNetwork<NodeNameT> *network, const string file_name);
 template
-static void read_edge_list_from_file(ModifiableNetwork<NodeNameIsInt32> *network, const string file_name);
+static void read_edge_list_from_file(ModifiableNetwork<NodeNameIsInt64> *network, const string file_name);
 template
 static void read_edge_list_from_file(ModifiableNetwork<NodeNameIsString> *network, const string file_name);
 typedef pair< pair<string, string> , string> ThreeStrings;
@@ -109,13 +109,13 @@ std :: string ModifiableNetwork<NodeNameIsString> :: node_name_as_string(int32_t
 	return this->ordered_node_names.at(node_id);
 }
 template<>
-std :: string ModifiableNetwork<NodeNameIsInt32> :: node_name_as_string(int32_t node_id) const {
+std :: string ModifiableNetwork<NodeNameIsInt64> :: node_name_as_string(int32_t node_id) const {
 	std :: ostringstream o;
 	o << this->ordered_node_names.at(node_id);
 	return o.str();
 }
 
-template struct ModifiableNetwork<graph :: NodeNameIsInt32>;
+template struct ModifiableNetwork<graph :: NodeNameIsInt64>;
 template struct ModifiableNetwork<graph :: NodeNameIsString>;
 
 static ThreeStrings parseLine(const string &lineOrig) {
@@ -286,14 +286,14 @@ static void read_edge_list_from_file(ModifiableNetwork<NodeNameT> *modifiable_ne
 	if(verbose) graph :: saving :: print_Network_to_screen(modifiable_network);
 }
 
-std :: auto_ptr< graph :: NetworkInt32 > make_Network_from_edge_list_int32 (const std :: string file_name, const bool directed, const bool weighted) throw(BadlyFormattedLine) { ModifiableNetwork<NodeNameIsInt32> *network = new ModifiableNetwork<NodeNameIsInt32>(directed, weighted);
-	read_edge_list_from_file<NodeNameIsInt32> (network, file_name);
-	return auto_ptr<NetworkInt32 >(network);
+std :: auto_ptr< graph :: NetworkInt64 > make_Network_from_edge_list_int64 (const std :: string file_name, const bool directed, const bool weighted) throw(BadlyFormattedLine) { ModifiableNetwork<NodeNameIsInt64> *network = new ModifiableNetwork<NodeNameIsInt64>(directed, weighted);
+	read_edge_list_from_file<NodeNameIsInt64> (network, file_name);
+	return auto_ptr< graph :: NetworkInt64 >(network);
 }
 std :: auto_ptr< graph :: NetworkString > make_Network_from_edge_list_string (const std :: string file_name, const bool directed, const bool weighted) throw(BadlyFormattedLine) {
 	ModifiableNetwork<NodeNameIsString> *network = new ModifiableNetwork<NodeNameIsString>(directed, weighted);
 	read_edge_list_from_file<NodeNameIsString> (network, file_name);
-	return auto_ptr<NetworkString >(network);
+	return auto_ptr< graph :: NetworkString >(network);
 }
 
 BadlyFormattedLine :: BadlyFormattedLine(int32_t _line_number, std :: string _bad_line) : line_number(_line_number), bad_line(_bad_line) {

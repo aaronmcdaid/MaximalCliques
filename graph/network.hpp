@@ -5,6 +5,7 @@
 #include "weights.hpp"
 #include <string>
 #include <memory>
+#include <sstream>
 #include <vector>
 #include <cstdlib>
 namespace graph {
@@ -14,31 +15,46 @@ struct NetworkInterface;
 struct NetworkInterfaceConvertedToString ; // Any NodeNameT (int or string) should be able to implement this.
 struct NetworkInterfaceConvertedToStringWithWeights ;
 
-struct NodeNameIsInt32; // the default node_name type. It's nice to have the names sorted by this, so that "10" comes after "2"
+struct NodeNameIsInt64; // the default node_name type. It's nice to have the names sorted by this, so that "10" comes after "2"
 struct NodeNameIsString; // .. but if the user wants to specify arbitrary strings in their edge list, they can do so explicitly.
-struct BadlyFormattedNodeName : public std :: exception { // if the text doesn't define an int properly when trying to use NodeNameIsInt32
+struct BadlyFormattedNodeName : public std :: exception { // if the text doesn't define an int properly when trying to use NodeNameIsInt64
+	std :: string s;
+	BadlyFormattedNodeName(const char * type_name, const std :: string &failed) {
+		std :: ostringstream os;
+		os << "Expected an " << type_name <<", got \"" << failed << "\" instead.";
+		s = os.str();
+	}
+	virtual const char* what() const throw() {
+		return s.c_str();
+	}
+	virtual ~BadlyFormattedNodeName() throw() {
+	}
 };
 
-typedef NetworkInterface<NodeNameIsInt32> NetworkInt32;
+typedef NetworkInterface<NodeNameIsInt64> NetworkInt64;
 typedef NetworkInterface<NodeNameIsString> NetworkString;
 
-struct NodeNameIsInt32 {
-	typedef int32_t value_type;
+struct NodeNameIsInt64 {
+	typedef int64_t value_type;
 	inline static value_type fromString(const std :: string &s) {
 		assert(!s.empty());
 		value_type i;
-		char *end_ptr;
-		i = int32_t(strtol(s.c_str(), &end_ptr, 10));
-		if(*end_ptr == '\0') // success, according to http://linux.die.net/man/3/strtol
+		// char *end_ptr;
+		// i = value_type(strtol(s.c_str(), &end_ptr, 10));
+		std :: istringstream sstr(s);
+		sstr >> i;
+		// if(*end_ptr == '\0') // success, according to http://linux.die.net/man/3/strtol
+		if(! sstr.fail())
 			return i;
 		else
-			throw BadlyFormattedNodeName();
+			throw BadlyFormattedNodeName("int64_t", s);
 	}
 };
 struct NodeNameIsString {
 	typedef std :: string value_type;
 	inline static value_type fromString(const std :: string &s) {
-		assert(!s.empty());
+		if(s.empty())
+		throw BadlyFormattedNodeName("non-empty string", s);
 		return s;
 	}
 };
