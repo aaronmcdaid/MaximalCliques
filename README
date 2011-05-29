@@ -1,0 +1,20 @@
+justTheCliques:   Find maximal cliques, via the Bron Kerbosch algorithm.
+
+== Copyright ==
+
+Copyright 2009-2011 - Aaron McDaid aaronmcdaid@gmail.com.
+Licensed under GPL v3. See gpl.txt included with this package.
+
+== Compiling ==
+
+	make clean justTheCliques
+
+== Usage ==
+
+	./justTheCliques edge_list.txt
+or
+	./justTheCliques edge_list.txt 10
+to focus only on cliques with at least 10 nodes in them - this should be a little faster
+
+
+http://en.wikipedia.org/wiki/Bron%E2%80%93Kerbosch_algorithm
