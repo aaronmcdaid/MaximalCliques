@@ -22,6 +22,12 @@ static void cliquesForOneNode(const SimpleIntGraph &g, CliqueReceiver *send_cliq
 static void find_node_with_fewest_discs(int &fewestDisc, int &fewestDiscVertex, bool &fewestIsInCands, const list_of_ints &Not, const list_of_ints &Candidates, const SimpleIntGraph &g);
 static const bool verbose = false;
 
+/*
+ * Candidates is always sorted
+ * Compsub isn't sorted, but it's a vector and doens't need to be looked up anyway.
+ * Not ?
+ */
+
 struct CliqueReceiver {
 	virtual void operator() (const std::vector<V> &clique) = 0;
 	virtual ~CliqueReceiver() {}
@@ -64,6 +70,7 @@ static void cliquesForOneNode(const SimpleIntGraph &g, CliqueReceiver *send_cliq
 }
 
 static inline void tryCandidate (const SimpleIntGraph & g, CliqueReceiver *send_cliques_here, unsigned int minimumSize, vector<V> & Compsub, const list_of_ints & Not, const list_of_ints & Candidates, const V selected) {
+	// it *might* be the case that the 'selected' node is still in Candidates, but we can rely on the intersection to remove it (assuming no self loops! )
 	assert(!Compsub.empty());
 	Compsub.push_back(selected); // Compsub does *not* have to be ordered. I might try to enforce that in future though.
 
@@ -118,7 +125,11 @@ static void cliquesWorker(const SimpleIntGraph &g, CliqueReceiver *send_cliques_
 			for( list_of_ints :: iterator i = Candidates.begin(); i != Candidates.end();) {
 				V v = *i;
 				unless(Candidates.size() + Compsub.size() >= minimumSize) return;
-				if(fewestDisc >0 && v!=fewestDiscVertex && !g->are_connected(v, fewestDiscVertex)) {
+				if(
+						fewestDisc >0 // speed trick. if it's zero, the call to are_connected is redundant
+						&& v!=fewestDiscVertex // deal with it later - see { if(fewestIsInCands) ... } below
+						&& !g->are_connected(v, fewestDiscVertex)
+					) { // just in case fewestDiscVertex is in Cands
 					unless(Candidates.size() + Compsub.size() >= minimumSize) return;
 					i = Candidates.erase(i);
 					tryCandidate(g, send_cliques_here, minimumSize, Compsub, Not, Candidates, v);
@@ -131,19 +142,19 @@ static void cliquesWorker(const SimpleIntGraph &g, CliqueReceiver *send_cliques_
 		// assert(fewestDisc == 0);
 	if(fewestIsInCands) { // The most disconnected node was in the Cands.
 			unless(Candidates.size() + Compsub.size() >= minimumSize) return;
-			Candidates.erase(lower_bound(Candidates.begin(),Candidates.end(),fewestDiscVertex));
+			// Allow fewestDiscVertex to slip through. Candidates.erase(lower_bound(Candidates.begin(),Candidates.end(),fewestDiscVertex));
 			tryCandidate(g, send_cliques_here, minimumSize, Compsub, Not, Candidates, fewestDiscVertex);
 			// No need as we're about to return...  Not.insert(lower_bound(Not.begin(), Not.end(), fewestDiscVertex) ,fewestDiscVertex); // we MUST keep the list Not in order
-	}
 
-#if 0
-	while(!Candidates.empty()) { // This little bit is version 1, really slow on some graphs, but it's correct and easy to understand.
-		V selected = Candidates.back();
-		Candidates.pop_back();
-		tryCandidate(g, cliquesOut, minimumSize, Compsub, Not, Candidates, selected);
-		Not.insert(lower_bound(Not.begin(), Not.end(), selected) ,selected); // we MUST keep the list Not in order
+			// Note: fewestDiscVertex is still in Candidates, but it's OK because tryCandidate can handle it.
 	}
-#endif
+	/*
+	 * At this stage:
+	 *   - fewestDiscVertex is in Not
+	 *   - all the Candidates that are *not* connected to fewestDiscVertex are in Not (let's "pretend" there's a self loop on fewestDiscVertex, if that helps you)
+	 *   - hence the remaining Candidates are all connected to fewestDiscVertex, and hence can't be in a maximal clique
+	 *   - so we can return now, even though Candidates is not empty.
+	 */
 }
 
 
@@ -168,8 +179,16 @@ struct CliquesToStdout : public CliqueReceiver {
 	}
 };
 
+struct SelfLoopsNotSupportedException {
+};
 static void findCliques(const SimpleIntGraph &g, CliqueReceiver *send_cliques_here, unsigned int minimumSize) {
 	unless(minimumSize >= 3) throw std::invalid_argument("the minimumSize for findCliques() must be at least 3");
+
+	for(int32_t r = 0; r < g->numRels(); r++) {
+		const pair<int32_t, int32_t> &eps = g->EndPoints(r);
+		unless(eps.first < eps.second) // no selfloops allowed
+			throw SelfLoopsNotSupportedException();
+	}
 
 	for(V v = 0; v < (V) g->numNodes(); v++) {
 		if(v && v % 100 ==0)
