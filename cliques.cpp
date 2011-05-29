@@ -1,5 +1,13 @@
 #include "cliques.hpp"
 #include <set>
+#include <list>
+#include <vector>
+#include <algorithm>
+#include <sys/stat.h>
+#include "Range.hpp"
+#include "aaron_utils.hpp"
+using namespace std;
+
 
 namespace cliques {
 
