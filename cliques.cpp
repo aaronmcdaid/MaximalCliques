@@ -161,9 +161,11 @@ struct CliquesToStdout : public CliqueReceiver {
 	const SimpleIntGraph *g;
 	CliquesToStdout(const SimpleIntGraph &_g) : n(0), g(&_g) {}
 	virtual void operator () (const vector<V> & Compsub) {
+		vector<V> Compsub_ordered(Compsub);
+		sort(Compsub_ordered.begin(), Compsub_ordered.end());
 		bool firstField = true;
-		if(Compsub.size() >= 3) {
-			ForeachContainer(V v, Compsub) {
+		if(Compsub_ordered.size() >= 3) {
+			ForeachContainer(V v, Compsub_ordered) {
 				if(!firstField)
 					std :: cout	<< ' ';
 				std :: cout << (*g)->node_name_as_string(v);
