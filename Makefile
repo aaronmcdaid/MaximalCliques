@@ -4,7 +4,7 @@ CC=g++
 #BITS=-m32
 #BITS=-m64
 
-all: boost_1_41_0 justTheCliques
+all: justTheCliques
 
 clean:
 	-rm tags justTheCliques *.o */*.o
@@ -22,20 +22,15 @@ CFLAGS=   \
           -Wunused-parameter    \
           -Wunused             \
           -Wnon-virtual-dtor \
-          -Wall -Wformat -Werror -I./boost_1_41_0 ${PROFILE}
+          -Wall -Wformat -Werror ${PROFILE}
           #-Wuninitialized   \
 
-boost_1_41_0:
-	@echo "   " This needs Boost. It has been tested with boost 1.41 .
-	@echo "   " Extract this to a folder called boost_1_41_0 . 
-	@echo "   " http://sourceforge.net/projects/boost/files/boost/1.41.0/
-	false
 
 
 #CXXFLAGS= ${BITS}     -g
 LDFLAGS+= ${PROFILE}
 #CXXFLAGS= ${BITS} -O3 -p -pg ${CFLAGS} # -DNDEBUG
-CXXFLAGS= ${BITS} -O3        ${CFLAGS} # -DNDEBUG
+CXXFLAGS= ${BITS}      ${CFLAGS} # -DNDEBUG
 #CXXFLAGS=              -O2                 
 
 justTheCliques: justTheCliques.o Range.o cliques.o graph/weights.o graph/loading.o graph/network.o graph/saving.o graph/graph.o graph/bloom.o

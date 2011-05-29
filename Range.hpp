@@ -4,10 +4,7 @@
 #include <utility>
 #include <string>
 #include <istream>
-#include <functional>
-#include <boost/function.hpp>
-#include <boost/lambda/lambda.hpp>
-#include <boost/utility/result_of.hpp>
+#include <tr1/functional>
 #include <tr1/type_traits>
 #include <memory>
 
@@ -130,13 +127,13 @@ public:
 std::auto_ptr< Range<std::string> > rangeOverStream(std::istream &_istr, const char * _delims = "\n");
 
 template<class T, class F>
-class RangeMapper : public Range<typename boost::result_of<F(typename T::value_type)>::type> { // T is a range. F is a function which is applied to members of T. The type of this RangeMapper is the result of F applied to elements of T
+class RangeMapper : public Range<typename std :: tr1 :: result_of<F(typename T::value_type)>::type> { // T is a range. F is a function which is applied to members of T. The type of this RangeMapper is the result of F applied to elements of T
 	T mapped;
 	typedef T source_range_type;
 	typedef typename source_range_type::value_type source_value_type;
 	F f;
 public:
-	typedef typename boost::result_of<F(typename T::value_type)>::type value_type;
+	typedef typename std :: tr1 :: result_of<F(typename T::value_type)>::type value_type;
 	RangeMapper(const T & mapped_, F f_) : mapped(mapped_), f(f_) {}
 	bool empty() const { return mapped.empty(); }
 	void popFront() { mapped.popFront(); }
