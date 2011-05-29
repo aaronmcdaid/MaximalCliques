@@ -1,5 +1,6 @@
 .PHONY: gitstatus.txt help clean
 BITS=
+CC=g++
 #BITS=-m32
 #BITS=-m64
 
@@ -14,8 +15,8 @@ tags:
 
 					#-Wclobbered   -Wempty-body   \ -Wignored-qualifiers  -Woverride-init   \ -Wtype-limits   -Wunused-but-set-parameter 
 # I'm including most of the -Wextra flags, but I want rid of the enum-in-conditional warning from boost
-#PROFILE=-p -pg -DNDEBUG
-CFLAGS=       \
+PROFILE= -O3 #-p -pg #-DNDEBUG
+CFLAGS=   \
           -Wmissing-field-initializers   \
           -Wsign-compare   \
           -Wunused-parameter    \
@@ -32,7 +33,7 @@ boost_1_41_0:
 
 
 #CXXFLAGS= ${BITS}     -g
-LDFLAGS+= -lstdc++ -lrt ${PROFILE}
+LDFLAGS+= ${PROFILE}
 #CXXFLAGS= ${BITS} -O3 -p -pg ${CFLAGS} # -DNDEBUG
 CXXFLAGS= ${BITS} -O3        ${CFLAGS} # -DNDEBUG
 #CXXFLAGS=              -O2                 
