@@ -118,16 +118,15 @@ static inline void tryCandidate (const SimpleIntGraph & g, CliqueReceiver *send_
 
 	list_of_ints CandidatesNew_;
 	list_of_ints NotNew_;
-	{
-		graph :: neighbouring_node_id_iterator ns(g, selected);
-		set_intersection(Candidates.get().begin()            , Candidates.get().end()
+	
+	graph :: neighbouring_node_id_iterator ns(g, selected);
+	set_intersection(Candidates.get().begin()            , Candidates.get().end()
 	                ,ns, ns.end_marker()
 			,back_inserter(CandidatesNew_));
-		graph :: neighbouring_node_id_iterator ns2(g, selected);
-		set_intersection(Not.get().begin()                 , Not.get().end()
+	graph :: neighbouring_node_id_iterator ns2(g, selected);
+	set_intersection(Not.get().begin()                 , Not.get().end()
 	                ,ns2, ns2.end_marker()
 			,back_inserter(NotNew_));
-	}
 
 	cliquesWorker(g, send_cliques_here, minimumSize, Compsub, NotNew_, CandidatesNew_);
 
