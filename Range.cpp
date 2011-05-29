@@ -1,4 +1,5 @@
 #include "Range.hpp"
+#include <cstring>
 
 #include <assert.h>
 

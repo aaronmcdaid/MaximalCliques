@@ -2,7 +2,9 @@
 #include <set>
 #include <list>
 #include <vector>
+#include <stdexcept>
 #include <algorithm>
+#include <limits>
 #include <sys/stat.h>
 #include "Range.hpp"
 #include "aaron_utils.hpp"
@@ -154,7 +156,7 @@ static void cliquesWorker(const SimpleIntGraph &g, CliqueReceiver *send_cliques_
 	 */
 
 	// We know Candidates is not empty. Must find the element, in Not or in Candidates, that is most connected to the (other) Candidates
-	int fewestDisc = INT_MAX;
+	int32_t fewestDisc = numeric_limits<int32_t> :: max();
 	V fewestDiscVertex = -1;
 	bool fewestIsInCands = false;
 	find_node_with_fewest_discs(fewestDisc, fewestDiscVertex, fewestIsInCands, Not, Candidates, g);
@@ -222,7 +224,7 @@ struct CliquesToStdout : public CliqueReceiver {
 struct SelfLoopsNotSupportedException {
 };
 static void findCliques(const SimpleIntGraph &g, CliqueReceiver *send_cliques_here, unsigned int minimumSize) {
-	unless(minimumSize >= 3) throw std::invalid_argument("the minimumSize for findCliques() must be at least 3");
+	unless(minimumSize >= 3) throw std :: invalid_argument("the minimumSize for findCliques() must be at least 3");
 
 	for(int32_t r = 0; r < g->numRels(); r++) {
 		const pair<int32_t, int32_t> &eps = g->EndPoints(r);
@@ -243,7 +245,16 @@ void cliquesToStdout(const graph :: NetworkInterfaceConvertedToString * net, uns
 	cerr << send_cliques_here.n << " cliques found" << endl;
 }
 
-static int32_t count_disconnections(const list_of_ints &Candidates, const int32_t v, const SimpleIntGraph &g) {
+static int32_t count_disconnections(const set<int> &cands, const int32_t v, const SimpleIntGraph &g) {
+	const vector<int> &v_neighs = g->neighbouring_nodes_in_order(v);
+	vector<int32_t> intersection;
+	set_intersection( cands.begin(), cands.end()
+			, v_neighs.begin(), v_neighs.end()
+			, back_inserter(intersection)
+			);
+	const int num_connections = intersection.size();
+
+	/*
 	int currentDiscs = 0;
 	for( list_of_ints :: const_iterator i = Candidates.get().begin(); i != Candidates.get().end(); i++) {
 		V v2 = *i;
@@ -251,14 +262,22 @@ static int32_t count_disconnections(const list_of_ints &Candidates, const int32_
 			++currentDiscs;
 		}
 	}
+	PP3( currentDiscs , num_connections , cands.size() );
+	assert( currentDiscs + num_connections == int(cands.size()) );
 	return currentDiscs;
+	*/
+	return cands.size() - num_connections;
+
+
 }
 static void find_node_with_fewest_discs(int &fewestDisc, int &fewestDiscVertex, bool &fewestIsInCands, const list_of_ints &Not, const list_of_ints &Candidates, const SimpleIntGraph &g) {
+	set<int32_t> cands(Candidates.get().begin(), Candidates.get().end());
 		assert(!Candidates.empty());
 		// TODO: Make use of degree, or something like that, to speed up this counting of disconnects?
-		for(list_of_ints :: const_iterator i = Not.get().begin(); i != Not.get().end(); i++) {
+		const list_of_ints :: const_iterator not_end = Not.get().end();
+		for(list_of_ints :: const_iterator i = Not.get().begin(); i != not_end; i++) {
 			V v = *i;
-			const int currentDiscs = count_disconnections(Candidates, v, g);
+			const int currentDiscs = count_disconnections(cands, v, g);
 			if(currentDiscs < fewestDisc) {
 				fewestDisc = currentDiscs;
 				fewestDiscVertex = v;
@@ -266,9 +285,10 @@ static void find_node_with_fewest_discs(int &fewestDisc, int &fewestDiscVertex, 
 				if(!fewestIsInCands && fewestDisc==0) return; // something in Not is connected to everything in Cands. Just give up now!
 			}
 		}
-		for(list_of_ints :: const_iterator i = Candidates.get().begin(); i != Candidates.get().end(); i++) {
+		const list_of_ints :: const_iterator cands_end = Candidates.get().end();
+		for(list_of_ints :: const_iterator i = Candidates.get().begin(); i != cands_end; i++) {
 			V v = *i;
-			const int currentDiscs = count_disconnections(Candidates, v, g);
+			const int currentDiscs = count_disconnections(cands, v, g);
 			if(currentDiscs < fewestDisc) {
 				fewestDisc = currentDiscs;
 				fewestDiscVertex = v;
