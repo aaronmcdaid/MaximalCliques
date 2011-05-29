@@ -112,6 +112,7 @@ static void cliquesWorker(const SimpleIntGraph &g, CliqueReceiver *send_cliques_
 	V fewestDiscVertex = -1;
 	bool fewestIsInCands = false;
 	find_node_with_fewest_discs(fewestDisc, fewestDiscVertex, fewestIsInCands, Not, Candidates, g);
+	if(!fewestIsInCands && fewestDisc==0) return; // something in Not is connected to everything in Cands. Just give up now!
 	{
 			// list_of_ints CandidatesCopy(Candidates);
 			for( list_of_ints :: iterator i = Candidates.begin(); i != Candidates.end();) {
