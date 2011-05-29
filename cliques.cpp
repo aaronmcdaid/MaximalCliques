@@ -19,6 +19,7 @@ struct CliqueReceiver;
 static void cliquesWorker(const SimpleIntGraph &g, CliqueReceiver *send_cliques_here, unsigned int minimumSize, vector<V> & Compsub, list_of_ints Not, list_of_ints Candidates);
 static void findCliques(const SimpleIntGraph &g, CliqueReceiver *cliquesOut, unsigned int minimumSize);
 static void cliquesForOneNode(const SimpleIntGraph &g, CliqueReceiver *send_cliques_here, int minimumSize, V v);
+static void find_node_with_fewest_discs(int &fewestDisc, int &fewestDiscVertex, bool &fewestIsInCands, list_of_ints &Not, list_of_ints &Candidates, const SimpleIntGraph &g);
 static const bool verbose = false;
 
 struct CliqueReceiver {
@@ -83,7 +84,9 @@ static inline void tryCandidate (const SimpleIntGraph & g, CliqueReceiver *send_
 
 	Compsub.pop_back(); // we must restore Compsub, it was passed by reference
 }
+
 static void cliquesWorker(const SimpleIntGraph &g, CliqueReceiver *send_cliques_here, unsigned int minimumSize, vector<V> & Compsub, list_of_ints Not, list_of_ints Candidates) {
+	assert(g != NULL);
 	// p2p         511462                   (10)
 	// authors000                  (250)    (<4)
 	// authors010  212489     5.3s (4.013)
@@ -106,33 +109,9 @@ static void cliquesWorker(const SimpleIntGraph &g, CliqueReceiver *send_cliques_
 
 	// We know Candidates is not empty. Must find the element, in Not or in Candidates, that is most connected to the (other) Candidates
 	int fewestDisc = INT_MAX;
-	V fewestDiscVertex = Candidates.front();
+	V fewestDiscVertex = -1;
 	bool fewestIsInCands = false;
-	{
-		ContainerRange<list_of_ints > nRange(Not);
-		ContainerRange<list_of_ints > cRange(Candidates);
-		ChainedRange<ContainerRange<list_of_ints > >  frontier(nRange, cRange); // The concatenated range of Not and Candidates
-		// There'll be node in Candidates anyway.
-		// TODO: Make use of degree, or something like that, to speed up this counting of disconnects?
-		Foreach(V v, frontier) {
-			int currentDiscs = 0;
-			ContainerRange<list_of_ints > testThese(Candidates);
-			Foreach(V v2, testThese) {
-				if(!g->are_connected(v, v2)) {
-					++currentDiscs;
-				}
-			}
-			{ // count the *connections* from v to Candidates
-			}
-			if(currentDiscs < fewestDisc) {
-				fewestDisc = currentDiscs;
-				fewestDiscVertex = v;
-				fewestIsInCands = frontier.firstEmpty();
-				if(!fewestIsInCands && fewestDisc==0) return; // something in Not is connected to everything in Cands. Just give up now!
-			}
-		}
-		assert(fewestDisc <= int(Candidates.size()));
-	}
+	find_node_with_fewest_discs(fewestDisc, fewestDiscVertex, fewestIsInCands, Not, Candidates, g);
 	{
 			list_of_ints CandidatesCopy(Candidates);
 			ContainerRange<list_of_ints > useTheDisconnected(CandidatesCopy);
@@ -203,6 +182,31 @@ void cliquesToStdout(const graph :: NetworkInterfaceConvertedToString * net, uns
 	CliquesToStdout send_cliques_here(net);
 	findCliques(net->get_plain_graph(), & send_cliques_here, minimumSize);
 	cerr << send_cliques_here.n << " cliques found" << endl;
+}
+
+static void find_node_with_fewest_discs(int &fewestDisc, int &fewestDiscVertex, bool &fewestIsInCands, list_of_ints &Not, list_of_ints &Candidates, const SimpleIntGraph &g) {
+		ContainerRange<list_of_ints > nRange(Not);
+		ContainerRange<list_of_ints > cRange(Candidates);
+		ChainedRange<ContainerRange<list_of_ints > >  frontier(nRange, cRange); // The concatenated range of Not and Candidates
+		// There'll be node in Candidates anyway.
+		// TODO: Make use of degree, or something like that, to speed up this counting of disconnects?
+		Foreach(V v, frontier) {
+			int currentDiscs = 0;
+			ContainerRange<list_of_ints > testThese(Candidates);
+			Foreach(V v2, testThese) {
+				if(!g->are_connected(v, v2)) {
+					++currentDiscs;
+				}
+			}
+			if(currentDiscs < fewestDisc) {
+				fewestDisc = currentDiscs;
+				fewestDiscVertex = v;
+				fewestIsInCands = frontier.firstEmpty();
+				if(!fewestIsInCands && fewestDisc==0) return; // something in Not is connected to everything in Cands. Just give up now!
+			}
+		}
+		assert(fewestDisc <= int(Candidates.size()));
+		assert(fewestDiscVertex >= 0);
 }
 
 } // namespace cliques
