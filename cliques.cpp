@@ -113,19 +113,18 @@ static void cliquesWorker(const SimpleIntGraph &g, CliqueReceiver *send_cliques_
 	bool fewestIsInCands = false;
 	find_node_with_fewest_discs(fewestDisc, fewestDiscVertex, fewestIsInCands, Not, Candidates, g);
 	{
-			list_of_ints CandidatesCopy(Candidates);
-			ContainerRange<list_of_ints > useTheDisconnected(CandidatesCopy);
-			Foreach(V v, useTheDisconnected) {
+			// list_of_ints CandidatesCopy(Candidates);
+			for( list_of_ints :: iterator i = Candidates.begin(); i != Candidates.end();) {
+				V v = *i;
 				unless(Candidates.size() + Compsub.size() >= minimumSize) return;
 				if(fewestDisc >0 && v!=fewestDiscVertex && !g->are_connected(v, fewestDiscVertex)) {
 					unless(Candidates.size() + Compsub.size() >= minimumSize) return;
-					// forEach(int cand, amd::mk_range(Candidates)) { PP(cand); }
-					// PP(v);
-					Candidates.erase(lower_bound(Candidates.begin(),Candidates.end(),v));
+					i = Candidates.erase(i);
 					tryCandidate(g, send_cliques_here, minimumSize, Compsub, Not, Candidates, v);
 					Not.insert(lower_bound(Not.begin(), Not.end(), v) ,v); // we MUST keep the list Not in order
 					--fewestDisc;
-				}
+				} else
+					++i;
 			}
 	}
 		// assert(fewestDisc == 0);
