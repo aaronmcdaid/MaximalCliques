@@ -68,12 +68,16 @@ public:
 		this -> i_end = vsg->neighbouring_rels_in_order(node_id).end();
 	}
 	neighbouring_rel_id_iterator & operator++() {
+#ifndef NDEBUG
 		value_type old_value = this -> operator* ();
+#endif
 		this->i ++;
+#ifndef NDEBUG
 		if( ! this->at_end()) {
 			value_type new_value = this -> operator* ();
 			assert(new_value > old_value);
 		}
+#endif
 		return *this;
 	}
 	neighbouring_rel_id_iterator   operator++(int) { // postfix. Should return the old iterator, but I'm going to return void :-)
@@ -106,12 +110,16 @@ public:
 	}
 	neighbouring_node_id_iterator & operator++() {
 		assert(vsg);
+#ifndef NDEBUG
 		value_type old_value = this -> operator* ();
+#endif
 		this->i ++;
+#ifndef NDEBUG
 		if( ! this->at_end()) {
 			value_type new_value = this -> operator* ();
 			assert(new_value > old_value);
 		}
+#endif
 		return *this;
 	}
 	neighbouring_node_id_iterator   operator++(int) { // postfix. Should return the old iterator, but I'm going to return void :-)
