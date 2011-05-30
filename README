@@ -11,16 +11,29 @@ Licensed under GPL v3. See gpl.txt included with this package.
 
 == Usage ==
 
-	./justTheCliques edge_list.txt       > cliques.txt
+
+	./justTheCliques your_edge_list.txt        [--stringIDs]    > cliques.txt
 
 or, if you just want cliques with at least 10 nodes in them,
 
-	./justTheCliques edge_list.txt 10       > cliques.txt
+	./justTheCliques your_edge_list.txt -k 10  [--stringIDs]    > cliques.txt
 
-this should be a little faster.
+this should be a little faster. --stringIDs is to allow strings, not just integers
+in the input - see below.
+
 The cliques themselves are printed to stdout (hence the redirection above). Various
 summary stats are printed on stderr. So, if you didn't want the cliques but
 did want to see the sizes of the cliques found, to
+
 	./justTheCliques edge_list.txt       > /dev/null
 
+== Input file ==
+
+Each line of the your_edge_list.txt represents an edge. The first two fields
+(delimited by commas, pipes(|), spaces or tabs) are the names of the two
+nodes that are connected. Directionality is ignored, and self-loops will be rejected.
+Any other fields on the line are also ignored.
+
+By default, the node names are integers (64-bit integers). But you can change
+this with the --stringIDs option; note this will increase memory usage.
 
