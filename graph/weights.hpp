@@ -9,6 +9,8 @@ namespace graph {
 namespace weights {
 
 struct EdgeDetailsInterface {
+	virtual bool is_directed() const = 0;
+	virtual bool is_weighted() const = 0;
 	virtual long double getl2h(const int relId) const = 0;
 	virtual long double geth2l(const int relId) const = 0;
 	virtual void new_rel(int relId, std :: pair<int,int> nodeIds, std :: string &weight) = 0;
@@ -23,9 +25,13 @@ struct EdgeDetails : public EdgeDetailsInterface {
 	long double getl2h(const int relId) const ; // this returns the value in the undirected case, and it handles self loops
 	long double geth2l(const int relId) const ; // this is only relevant in directed graphs.
 	~ EdgeDetails();
+	virtual bool is_directed() const { return W :: is_directed; }
+	virtual bool is_weighted() const { return W :: is_weighted; }
 };
 
 struct NoDetails { // unweighted, undirected
+	static const bool is_directed = false;
+	static const bool is_weighted = false;
 	typedef struct {
 		void inform(const bool, const std :: string) const {
 		}
@@ -38,6 +44,8 @@ struct NoDetails { // unweighted, undirected
 	} datumT;
 };
 struct DirectedLDoubleWeights {
+	static const bool is_directed = true;
+	static const bool is_weighted = true;
 	typedef struct LdblPair : public std :: pair<long double,long double> {
 		LdblPair() {
 			this->first = this->second = 0.0L;
@@ -68,6 +76,8 @@ struct DirectedLDoubleWeights {
 	} datumT; // the type needed to store the weights in each direction.
 };
 struct DirectedNoWeights {
+	static const bool is_directed = true;
+	static const bool is_weighted = false;
 	typedef struct IntPair : public std :: pair<int,int> {
 		IntPair() {
 			this->first = this->second = 0;
@@ -88,6 +98,8 @@ struct DirectedNoWeights {
 	} datumT; // the type needed to store the weights in each direction.
 };
 struct WeightNoDir {
+	static const bool is_directed = false;
+	static const bool is_weighted = true;
 	typedef struct LdblPair {
 		long double weight;
 		LdblPair() {
