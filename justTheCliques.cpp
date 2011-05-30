@@ -8,21 +8,24 @@ using namespace std;
 
 #include "pp.hpp"
 #include "cliques.hpp"
+#include "cmdline.h"
 
 int option_minCliqueSize = 3;
 
 int main(int argc, char **argv) {
-	unless (argc ==3 || argc == 2 ) {
-		cerr << "Usage: edge_list [k]" << endl;
-		exit(1);
-	}
-	const char * edgeListFileName = argv[1];
-	const int k = argc == 2 ? 3 : atoi(argv[2]);
-	if(k < 3) {
-		cerr << "Usage: edge_list [k]       where k > = 3" << endl;
+	gengetopt_args_info args_info;
+
+	// there shouldn't be any errors in processing args
+	if (cmdline_parser (argc, argv, &args_info) != 0)
+		exit(1) ;
+	// .. and there should be exactly one non-option arg
+	if(args_info.inputs_num != 1 || args_info.k_arg < 3) {
+		cmdline_parser_print_help();
 		exit(1);
 	}
 
+	const char * edgeListFileName   = args_info.inputs[0];
+	const int k = args_info.k_arg;
 
         std :: auto_ptr<graph :: NetworkInt64 > network = graph :: loading :: make_Network_from_edge_list_int64(edgeListFileName, 0, 0);
 
