@@ -28,13 +28,15 @@ const char *gengetopt_args_info_usage = "Usage: Find Maximal Cliques [OPTIONS]..
 const char *gengetopt_args_info_description = "";
 
 const char *gengetopt_args_info_help[] = {
-  "  -h, --help     Print help and exit",
-  "  -V, --version  Print version and exit",
-  "  -k, --k=INT    minimum size of clique, k. Must be at least 3.  (default=`3')",
+  "  -h, --help       Print help and exit",
+  "  -V, --version    Print version and exit",
+  "  -k, --k=INT      minimum size of clique, k. Must be at least 3.  \n                     (default=`3')",
+  "      --stringIDs  string IDs in the input  (default=off)",
     0
 };
 
 typedef enum {ARG_NO
+  , ARG_FLAG
   , ARG_INT
 } cmdline_parser_arg_type;
 
@@ -57,6 +59,7 @@ void clear_given (struct gengetopt_args_info *args_info)
   args_info->help_given = 0 ;
   args_info->version_given = 0 ;
   args_info->k_given = 0 ;
+  args_info->stringIDs_given = 0 ;
 }
 
 static
@@ -64,6 +67,7 @@ void clear_args (struct gengetopt_args_info *args_info)
 {
   args_info->k_arg = 3;
   args_info->k_orig = NULL;
+  args_info->stringIDs_flag = 0;
   
 }
 
@@ -75,6 +79,7 @@ void init_args_info(struct gengetopt_args_info *args_info)
   args_info->help_help = gengetopt_args_info_help[0] ;
   args_info->version_help = gengetopt_args_info_help[1] ;
   args_info->k_help = gengetopt_args_info_help[2] ;
+  args_info->stringIDs_help = gengetopt_args_info_help[3] ;
   
 }
 
@@ -197,6 +202,8 @@ cmdline_parser_dump(FILE *outfile, struct gengetopt_args_info *args_info)
     write_into_file(outfile, "version", 0, 0 );
   if (args_info->k_given)
     write_into_file(outfile, "k", args_info->k_orig, 0);
+  if (args_info->stringIDs_given)
+    write_into_file(outfile, "stringIDs", 0, 0 );
   
 
   i = EXIT_SUCCESS;
@@ -357,6 +364,9 @@ int update_arg(void *field, char **orig_field,
     val = possible_values[found];
 
   switch(arg_type) {
+  case ARG_FLAG:
+    *((int *)field) = !*((int *)field);
+    break;
   case ARG_INT:
     if (val) *((int *)field) = strtol (val, &stop_char, 0);
     break;
@@ -379,6 +389,7 @@ int update_arg(void *field, char **orig_field,
   /* store the original value */
   switch(arg_type) {
   case ARG_NO:
+  case ARG_FLAG:
     break;
   default:
     if (value && orig_field) {
@@ -435,6 +446,7 @@ cmdline_parser_internal (int argc, char * const *argv, struct gengetopt_args_inf
         { "help",	0, NULL, 'h' },
         { "version",	0, NULL, 'V' },
         { "k",	1, NULL, 'k' },
+        { "stringIDs",	0, NULL, 0 },
         { NULL,	0, NULL, 0 }
       };
 
@@ -468,6 +480,20 @@ cmdline_parser_internal (int argc, char * const *argv, struct gengetopt_args_inf
           break;
 
         case 0:	/* Long option with no short option */
+          /* string IDs in the input.  */
+          if (strcmp (long_options[option_index].name, "stringIDs") == 0)
+          {
+          
+          
+            if (update_arg((void *)&(args_info->stringIDs_flag), 0, &(args_info->stringIDs_given),
+                &(local_args_info.stringIDs_given), optarg, 0, 0, ARG_FLAG,
+                check_ambiguity, override, 1, 0, "stringIDs", '-',
+                additional_error))
+              goto failure;
+          
+          }
+          
+          break;
         case '?':	/* Invalid option.  */
           /* `getopt_long' already printed an error message.  */
           goto failure;

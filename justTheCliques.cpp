@@ -27,7 +27,12 @@ int main(int argc, char **argv) {
 	const char * edgeListFileName   = args_info.inputs[0];
 	const int k = args_info.k_arg;
 
-        std :: auto_ptr<graph :: NetworkInt64 > network = graph :: loading :: make_Network_from_edge_list_int64(edgeListFileName, 0, 0);
+        std :: auto_ptr<graph :: NetworkInterfaceConvertedToString > network;
+	if(args_info.stringIDs_flag) {
+		network	= graph :: loading :: make_Network_from_edge_list_string(edgeListFileName, 0, 0);
+	} else {
+		network	= graph :: loading :: make_Network_from_edge_list_int64(edgeListFileName, 0, 0);
+	}
 
 	int32_t maxDegree = -1;
 	for(int n=0; n<network->numNodes(); n++) {

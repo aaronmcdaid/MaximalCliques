@@ -37,10 +37,13 @@ struct gengetopt_args_info
   int k_arg;	/**< @brief minimum size of clique, k. Must be at least 3. (default='3').  */
   char * k_orig;	/**< @brief minimum size of clique, k. Must be at least 3. original value given at command line.  */
   const char *k_help; /**< @brief minimum size of clique, k. Must be at least 3. help description.  */
+  int stringIDs_flag;	/**< @brief string IDs in the input (default=off).  */
+  const char *stringIDs_help; /**< @brief string IDs in the input help description.  */
   
   unsigned int help_given ;	/**< @brief Whether help was given.  */
   unsigned int version_given ;	/**< @brief Whether version was given.  */
   unsigned int k_given ;	/**< @brief Whether k was given.  */
+  unsigned int stringIDs_given ;	/**< @brief Whether stringIDs was given.  */
 
   char **inputs ; /**< @brief unamed options (options without names) */
   unsigned inputs_num ; /**< @brief unamed options number */
