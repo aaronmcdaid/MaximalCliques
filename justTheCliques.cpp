@@ -1,6 +1,7 @@
 using namespace std;
 #include "graph/network.hpp"
 #include "graph/loading.hpp"
+#include "graph/stats.hpp"
 #include <getopt.h>
 #include <unistd.h>
 #include <libgen.h>
@@ -34,12 +35,7 @@ int main(int argc, char **argv) {
 		network	= graph :: loading :: make_Network_from_edge_list_int64(edgeListFileName, 0, 0);
 	}
 
-	int32_t maxDegree = -1;
-	for(int n=0; n<network->numNodes(); n++) {
-		const int32_t deg = network->degree(n);
-		if(maxDegree < deg)
-			maxDegree = deg;
-	}
+	int32_t maxDegree = graph :: stats :: get_max_degree(network->get_plain_graph());
 	cerr << "Network loaded"
 	       << " after " << (double(clock()) / CLOCKS_PER_SEC) << " seconds. "
 		<< network.get()->numNodes() << " nodes and " << network.get()->numRels() << " edges."

@@ -4,10 +4,10 @@ CC=g++
 #BITS=-m32
 #BITS=-m64
 
-all: justTheCliques
+all: justTheCliques cp5
 
 clean:
-	-rm tags justTheCliques *.o */*.o
+	-rm tags justTheCliques cp5 *.o */*.o
 
 tags:
 	ctags *.[ch]pp
@@ -33,12 +33,19 @@ LDFLAGS+= ${PROFILE}
 CXXFLAGS= ${BITS}      ${CFLAGS} # -DNDEBUG
 #CXXFLAGS=              -O2                 
 
-justTheCliques: justTheCliques.o cliques.o graph/weights.o graph/loading.o graph/network.o graph/saving.o graph/graph.o graph/bloom.o cmdline.o
+justTheCliques: justTheCliques.o cliques.o graph/weights.o graph/loading.o graph/network.o graph/saving.o graph/graph.o graph/bloom.o graph/stats.o cmdline.o
+cp5:            cp5.o            cliques.o graph/weights.o graph/loading.o graph/network.o graph/saving.o graph/graph.o graph/bloom.o graph/stats.o cmdline-cp5.o
 
 
 
-cmdline.c:      
+cmdline.c.FORCE:      
 	# remake cmdline.c . But it's OK unless you change the .ggo file. You'll need gengetopt(1) to be able to run this.
 	gengetopt  --unamed-opts < cmdline.ggo
 cmdline.o: cmdline.c
 	gcc -Wall cmdline.c -o cmdline.o -c
+
+cmdline-cp5.c.FORCE:      
+	# remake cmdline-cp5.c . But it's OK unless you change the .ggo file. You'll need gengetopt(1) to be able to run this.
+	gengetopt  --unamed-opts -F cmdline-cp5 < cmdline-cp5.ggo
+cmdline-cp5.o: cmdline-cp5.c
+	gcc -Wall cmdline-cp5.c -o cmdline-cp5.o -c
