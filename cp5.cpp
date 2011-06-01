@@ -119,6 +119,28 @@ void add_clique_to_bloom(bloom &bl, const vector<clique> &the_cliques, const int
 	}
 }
 
+void search_for_candidate_matches(const bloom &bl, const clique &new_clique, const int32_t power_up, const int32_t branch_identifier = 1) {
+	// before we all this new clique, let's see which existing cliques it matches with
+	// we branch from the top down this time
+	int32_t potential_overlap = 0;
+	if(branch_identifier != 1) { // we won't bother checking the root
+		for(size_t n = 0; n < new_clique.size(); n++) {
+			const int32_t node_id = new_clique.at(n);
+			const int64_t a = (int64_t(branch_identifier) << 32) + node_id;
+			potential_overlap += bl.test(a) ? 1 : 0;
+		}
+		if(potential_overlap < 2)
+			return;
+	}
+	if(branch_identifier >= power_up) {
+		// branch_identifier - power_up is a candidate clique
+		PP2(potential_overlap, branch_identifier - power_up);
+	} else {
+		search_for_candidate_matches(bl, new_clique, power_up, 2*branch_identifier);
+		search_for_candidate_matches(bl, new_clique, power_up, 2*branch_identifier+1);
+	}
+}
+
 static void do_clique_percolation_variant_5(vector<clustering :: components> &all_percolation_levels, const int32_t min_k, const vector< clique > &the_cliques) {
 	const int32_t C = the_cliques.size();
 	const int32_t max_k = all_percolation_levels.size()-1;
@@ -136,7 +158,11 @@ static void do_clique_percolation_variant_5(vector<clustering :: components> &al
 	// feed those results into the components
 	bloom bl;
 	for(int c = 0; c < C; c++) {
+		cout << endl;
+		PP(c);
+		search_for_candidate_matches(bl, the_cliques.at(c), power_up);
 		add_clique_to_bloom(bl, the_cliques, c, power_up);
+		PP(bl.occupied);
 	}
 
 	PPt(bl.l);
