@@ -43,7 +43,7 @@ int main(int argc, char **argv) {
 		<< " Max degree is " << maxDegree
 	       << endl;
 
-	// cliques::cliquesToStdout(g.get(), k);
-	cliques :: cliquesToStdout(network.get(), k);
+	std :: vector< std :: vector<int32_t> > the_cliques;
+	cliques :: cliquesToVector(network.get(), k, the_cliques);
 
 }

@@ -240,6 +240,7 @@ static void findCliques(const SimpleIntGraph &g, CliqueReceiver *send_cliques_he
 	}
 }
 void cliquesToStdout(const graph :: NetworkInterfaceConvertedToString * net, unsigned int minimumSize /* = 3*/ ) {
+	assert(minimumSize >= 3);
 
 	CliquesToStdout send_cliques_here(net);
 	findCliques(net->get_plain_graph(), & send_cliques_here, minimumSize);
@@ -252,6 +253,19 @@ void cliquesToStdout(const graph :: NetworkInterfaceConvertedToString * net, uns
 		}
 	}
 
+}
+
+struct CliquesToStdoutFunctor : public CliqueReceiver {
+	std :: vector< std :: vector<int32_t> > & output_vector;
+	CliquesToStdoutFunctor(std :: vector< std :: vector<int32_t> > & _output_vector) : output_vector(_output_vector) {}
+	virtual void operator () (const vector<int32_t> & new_clique) {
+		this->output_vector.push_back(new_clique);
+	}
+};
+void cliquesToVector          (const graph :: NetworkInterfaceConvertedToString * net, unsigned int minimumSize, std :: vector< std :: vector<int32_t> > & output_vector ) {
+	assert(minimumSize >= 3);
+	CliquesToStdoutFunctor send_cliques_here( output_vector );
+	findCliques(net->get_plain_graph(), & send_cliques_here, minimumSize);
 }
 
 static int32_t count_disconnections(const set<int> &cands, const int32_t v, const SimpleIntGraph &g) {
