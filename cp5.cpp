@@ -1,17 +1,22 @@
-using namespace std;
 #include "graph/network.hpp"
 #include "graph/loading.hpp"
 #include "graph/stats.hpp"
+#include "clustering/components.hpp"
 #include <getopt.h>
 #include <unistd.h>
 #include <libgen.h>
 #include <ctime>
+#include <vector>
 
 #include "pp.hpp"
 #include "cliques.hpp"
 #include "cmdline.h"
 
+using namespace std;
+
 int option_minCliqueSize = 3;
+
+static void do_clique_percolation_variant_5(vector<clustering :: components> &all_percolation_levels, const int32_t min_k, const vector< vector<int32_t> > &the_cliques) ;
 
 int main(int argc, char **argv) {
 	gengetopt_args_info args_info;
@@ -26,7 +31,7 @@ int main(int argc, char **argv) {
 	}
 
 	const char * edgeListFileName   = args_info.inputs[0];
-	const int k = args_info.k_arg;
+	const int min_k = args_info.k_arg;
 
         std :: auto_ptr<graph :: NetworkInterfaceConvertedToString > network;
 	if(args_info.stringIDs_flag) {
@@ -43,7 +48,34 @@ int main(int argc, char **argv) {
 		<< " Max degree is " << maxDegree
 	       << endl;
 
-	std :: vector< std :: vector<int32_t> > the_cliques;
-	cliques :: cliquesToVector(network.get(), k, the_cliques);
+	vector< vector<int32_t> > the_cliques;
+	cliques :: cliquesToVector(network.get(), min_k, the_cliques);
 
+	const int32_t C = the_cliques.size();
+	if(C==0) {
+		cerr << endl << "Error: you don't have any cliques of at least size " << min_k << " Exiting." << endl;
+		exit(1);
+	}
+	int max_clique_size = 0; // to store the size of the biggest clique
+	for(vector<vector<int32_t> > :: const_iterator i = the_cliques.begin(); i != the_cliques.end(); i++) {
+		if(max_clique_size < (int)i->size())
+			max_clique_size = i->size();
+	}
+	PP(max_clique_size);
+	assert(max_clique_size > 0);
+
+	vector<clustering :: components> all_percolation_levels(max_clique_size+1);
+	for(int32_t i = min_k; i <= max_clique_size; i++)
+		all_percolation_levels.at(i).setN(C);
+
+	// finally, call the clique_percolation algorithm proper
+
+	do_clique_percolation_variant_5(all_percolation_levels, min_k, the_cliques);
+}
+
+static void do_clique_percolation_variant_5(vector<clustering :: components> &all_percolation_levels, const int32_t min_k, const vector< vector<int32_t> > &the_cliques) {
+	const int32_t C = the_cliques.size();
+	const int32_t max_k = all_percolation_levels.size()-1;
+	PP3(C, min_k, max_k);
+	assert(min_k <= max_k && C > 0);
 }

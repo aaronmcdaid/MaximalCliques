@@ -22,7 +22,7 @@ CFLAGS=   \
           -Wunused-parameter    \
           -Wunused             \
           -Wnon-virtual-dtor \
-          -Wall -Wformat -Werror ${PROFILE} -Wextra -Wconversion
+          -Wall -Wformat -Werror ${PROFILE} -Wextra # -Wconversion
           #-Wuninitialized   \
 
 
@@ -34,7 +34,7 @@ CXXFLAGS= ${BITS}      ${CFLAGS} # -DNDEBUG
 #CXXFLAGS=              -O2                 
 
 justTheCliques: justTheCliques.o cliques.o graph/weights.o graph/loading.o graph/network.o graph/saving.o graph/graph.o graph/bloom.o graph/stats.o cmdline.o
-cp5:            cp5.o            cliques.o graph/weights.o graph/loading.o graph/network.o graph/saving.o graph/graph.o graph/bloom.o graph/stats.o cmdline-cp5.o
+cp5:            cp5.o            cliques.o graph/weights.o graph/loading.o graph/network.o graph/saving.o graph/graph.o graph/bloom.o graph/stats.o cmdline-cp5.o clustering/components.o
 
 
 
