@@ -125,7 +125,7 @@ static void search_for_candidate_matches(const bloom &bl, const vector<clique> &
 		const int32_t cand_clique_id = branch_identifier - power_up; // the clique we think has sufficient nodes
 		const int32_t actual = actual_overlap(the_cliques.at(cand_clique_id), new_clique);
 		// PP3(cand_clique_id, potential_overlap, actual);
-		assert(actual == potential_overlap);
+		assert(actual <= potential_overlap); // Princeton is the first file I found that catches this. Good to see it happens so rarely
 	} else {
 		search_for_candidate_matches(bl, the_cliques, new_clique, power_up, 2*branch_identifier);
 		search_for_candidate_matches(bl, the_cliques, new_clique, power_up, 2*branch_identifier+1);
