@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <libgen.h>
 #include <ctime>
+#include <algorithm>
 #include <vector>
 
 #include "pp.hpp"
@@ -102,24 +103,11 @@ public:
 	}
 };
 
-void add_clique_to_bloom(bloom &bl, const vector<clique> &the_cliques, const int32_t clique_id, const int32_t power_up) {
-	int32_t p = power_up;
-	int32_t cl = clique_id;
-	const clique new_clique = the_cliques.at(clique_id);
-	while(p) {
-		assert(cl < p);
-		const int32_t branch_identifier = cl + p;
-		for(size_t n = 0; n < new_clique.size(); n++) {
-			const int32_t node_id = new_clique.at(n);
-			const int64_t a = (int64_t(branch_identifier) << 32) + node_id;
-			bl.set(a);
-		}
-		p >>= 1;
-		cl >>= 1;
-	}
-}
+static void add_clique_to_bloom(bloom &bl, const vector<clique> &the_cliques, const int32_t clique_id, const int32_t power_up) ;
+static int32_t actual_overlap(const clique &old_clique, const clique &new_clique) ;
+static void search_for_candidate_matches(const bloom &bl, const vector<clique> &the_cliques, const clique &new_clique, const int32_t power_up, const int32_t branch_identifier) ;
 
-void search_for_candidate_matches(const bloom &bl, const clique &new_clique, const int32_t power_up, const int32_t branch_identifier = 1) {
+static void search_for_candidate_matches(const bloom &bl, const vector<clique> &the_cliques, const clique &new_clique, const int32_t power_up, const int32_t branch_identifier) {
 	// before we all this new clique, let's see which existing cliques it matches with
 	// we branch from the top down this time
 	int32_t potential_overlap = 0;
@@ -134,10 +122,13 @@ void search_for_candidate_matches(const bloom &bl, const clique &new_clique, con
 	}
 	if(branch_identifier >= power_up) {
 		// branch_identifier - power_up is a candidate clique
-		PP2(potential_overlap, branch_identifier - power_up);
+		const int32_t cand_clique_id = branch_identifier - power_up; // the clique we think has sufficient nodes
+		const int32_t actual = actual_overlap(the_cliques.at(cand_clique_id), new_clique);
+		// PP3(cand_clique_id, potential_overlap, actual);
+		assert(actual == potential_overlap);
 	} else {
-		search_for_candidate_matches(bl, new_clique, power_up, 2*branch_identifier);
-		search_for_candidate_matches(bl, new_clique, power_up, 2*branch_identifier+1);
+		search_for_candidate_matches(bl, the_cliques, new_clique, power_up, 2*branch_identifier);
+		search_for_candidate_matches(bl, the_cliques, new_clique, power_up, 2*branch_identifier+1);
 	}
 }
 
@@ -158,11 +149,11 @@ static void do_clique_percolation_variant_5(vector<clustering :: components> &al
 	// feed those results into the components
 	bloom bl;
 	for(int c = 0; c < C; c++) {
-		cout << endl;
+		// cout << endl;
 		PP(c);
-		search_for_candidate_matches(bl, the_cliques.at(c), power_up);
+		search_for_candidate_matches(bl, the_cliques, the_cliques.at(c), power_up, 1);
 		add_clique_to_bloom(bl, the_cliques, c, power_up);
-		PP(bl.occupied);
+		// PP(bl.occupied);
 	}
 
 	PPt(bl.l);
@@ -176,4 +167,29 @@ string thou(T number) {
 	ss.imbue(std::locale("en_US.UTF-8"));
 	ss << number;
 	return ss.str();
+}
+
+static void add_clique_to_bloom(bloom &bl, const vector<clique> &the_cliques, const int32_t clique_id, const int32_t power_up) {
+	int32_t p = power_up;
+	int32_t cl = clique_id;
+	const clique new_clique = the_cliques.at(clique_id);
+	while(p) {
+		assert(cl < p);
+		const int32_t branch_identifier = cl + p;
+		for(size_t n = 0; n < new_clique.size(); n++) {
+			const int32_t node_id = new_clique.at(n);
+			const int64_t a = (int64_t(branch_identifier) << 32) + node_id;
+			bl.set(a);
+		}
+		p >>= 1;
+		cl >>= 1;
+	}
+}
+
+static int32_t actual_overlap(const clique &old_clique, const clique &new_clique) {
+	vector<int32_t> intersection;
+	set_intersection( old_clique.begin(), old_clique.end()
+	                 ,new_clique.begin(), new_clique.end()
+			 , back_inserter(intersection));
+	return intersection.size();
 }
