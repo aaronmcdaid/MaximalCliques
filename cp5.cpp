@@ -73,9 +73,30 @@ int main(int argc, char **argv) {
 	do_clique_percolation_variant_5(all_percolation_levels, min_k, the_cliques);
 }
 
+class bloom { // http://en.wikipedia.org/wiki/Bloom_filter
+	static const int64_t l = 10000000000;
+	vector<bool> data;
+	int64_t occupied;
+public:
+	bloom() : data(this->l), occupied(0) {  // 10 giga-bits 1.25 GB
+	}
+	bool test(const int64_t a) const {
+		const int64_t b = a % l;
+		return this->data.at(b);
+	}
+};
+
 static void do_clique_percolation_variant_5(vector<clustering :: components> &all_percolation_levels, const int32_t min_k, const vector< vector<int32_t> > &the_cliques) {
 	const int32_t C = the_cliques.size();
 	const int32_t max_k = all_percolation_levels.size()-1;
 	PP3(C, min_k, max_k);
 	assert(min_k <= max_k && C > 0);
+
+	// go through each clique, from the 'earlier' to 'later' cliques.
+	// for each clique, find all the 'earlier' cliques with which it overlaps by at least min_k-1
+	// feed those results into the components
+	bloom bl;
+	for(int c = 0; c < C; c++) {
+		PP2(c, the_cliques.at(c).size());
+	}
 }
