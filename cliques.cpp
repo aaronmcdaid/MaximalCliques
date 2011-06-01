@@ -73,7 +73,7 @@ static const bool verbose = false;
  */
 
 struct CliqueReceiver {
-	virtual void operator() (const std::vector<V> &clique) = 0;
+	virtual void receive_unsorted_clique (std::vector<V> clique) = 0;
 	virtual ~CliqueReceiver() {}
 };
 
@@ -144,7 +144,7 @@ static void cliquesWorker(const SimpleIntGraph &g, CliqueReceiver *send_cliques_
 
 	if(Candidates.empty()) { // No more cliques to be found. This is the (local) maximal clique.
 		if(Not.empty() && Compsub.size() >= minimumSize)
-			send_cliques_here->operator()(Compsub);
+			send_cliques_here->receive_unsorted_clique(Compsub);
 		return;
 	}
 
@@ -204,13 +204,12 @@ struct CliquesToStdout : public CliqueReceiver {
 	std :: map<size_t, int32_t> cliqueFrequencies;
 	const graph :: NetworkInterfaceConvertedToString *g;
 	CliquesToStdout(const graph :: NetworkInterfaceConvertedToString *_g) : n(0), g(_g) {}
-	virtual void operator () (const vector<V> & Compsub) {
-		vector<V> Compsub_ordered(Compsub);
-		sort(Compsub_ordered.begin(), Compsub_ordered.end());
+	virtual void receive_unsorted_clique (vector<V> Compsub) {
+		sort(Compsub.begin(), Compsub.end());
 		bool firstField = true;
-		if(Compsub_ordered.size() >= 3) {
-			++ this -> cliqueFrequencies[Compsub_ordered.size()];
-			for(vector<V> :: const_iterator v = Compsub_ordered.begin(); v != Compsub_ordered.end(); ++v) {
+		if(Compsub.size() >= 3) {
+			++ this -> cliqueFrequencies[Compsub.size()];
+			for(vector<V> :: const_iterator v = Compsub.begin(); v != Compsub.end(); ++v) {
 				if(!firstField)
 					std :: cout	<< ' ';
 				std :: cout <<  g->node_name_as_string(*v) ;
@@ -258,7 +257,8 @@ void cliquesToStdout(const graph :: NetworkInterfaceConvertedToString * net, uns
 struct CliquesToStdoutFunctor : public CliqueReceiver {
 	std :: vector< std :: vector<int32_t> > & output_vector;
 	CliquesToStdoutFunctor(std :: vector< std :: vector<int32_t> > & _output_vector) : output_vector(_output_vector) {}
-	virtual void operator () (const vector<int32_t> & new_clique) {
+	virtual void receive_unsorted_clique (vector<int32_t> new_clique) {
+		sort(new_clique.begin(), new_clique.end());
 		this->output_vector.push_back(new_clique);
 	}
 };
