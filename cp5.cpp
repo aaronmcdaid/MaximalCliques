@@ -14,7 +14,9 @@
 
 using namespace std;
 
-int option_minCliqueSize = 3;
+template<typename T>
+string thou(T number);
+#define PPt(x) PP(thou(x))
 
 static void do_clique_percolation_variant_5(vector<clustering :: components> &all_percolation_levels, const int32_t min_k, const vector< vector<int32_t> > &the_cliques) ;
 
@@ -99,4 +101,12 @@ static void do_clique_percolation_variant_5(vector<clustering :: components> &al
 	for(int c = 0; c < C; c++) {
 		PP2(c, the_cliques.at(c).size());
 	}
+}
+
+template<typename T>
+string thou(T number) {
+	std::ostringstream ss;
+	ss.imbue(std::locale("en_US.UTF-8"));
+	ss << number;
+	return ss.str();
 }
