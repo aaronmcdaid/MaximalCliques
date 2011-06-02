@@ -120,7 +120,7 @@ static void search_for_candidate_matches(const bloom &bl, const vector<clique> &
 			const int64_t a = (int64_t(branch_identifier) << 32) + node_id;
 			potential_overlap += bl.test(a) ? 1 : 0;
 		}
-		if(potential_overlap < 2)
+		if(potential_overlap < min_k-1)
 			return;
 	}
 	if(branch_identifier >= power_up) {
