@@ -22,6 +22,7 @@ static void do_clique_percolation_variant_5(vector<clustering :: components> &al
 template<typename T>
 string thou(T number);
 #define PPt(x) PP(thou(x))
+#define ELAPSED (double(clock())/CLOCKS_PER_SEC)
 
 
 int main(int argc, char **argv) {
@@ -105,11 +106,12 @@ public:
 
 static void add_clique_to_bloom(bloom &bl, const vector<clique> &the_cliques, const int32_t clique_id, const int32_t power_up) ;
 static int32_t actual_overlap(const clique &old_clique, const clique &new_clique) ;
-static void search_for_candidate_matches(const bloom &bl, const vector<clique> &the_cliques, const clique &new_clique, const int32_t power_up, const int32_t branch_identifier, int64_t &count_searches, int64_t &count_successes) ;
+static void search_for_candidate_matches(const bloom &bl, const vector<clique> &the_cliques, const int32_t new_clique_id, const int32_t power_up, const int32_t branch_identifier, int64_t &count_searches, int64_t &count_successes, const int32_t min_k) ;
 
-static void search_for_candidate_matches(const bloom &bl, const vector<clique> &the_cliques, const clique &new_clique, const int32_t power_up, const int32_t branch_identifier, int64_t &count_searches, int64_t &count_successes) {
+static void search_for_candidate_matches(const bloom &bl, const vector<clique> &the_cliques, const int32_t new_clique_id, const int32_t power_up, const int32_t branch_identifier, int64_t &count_searches, int64_t &count_successes, const int32_t min_k) {
 	// before we all this new clique, let's see which existing cliques it matches with
 	// we branch from the top down this time
+	const clique &new_clique = the_cliques.at(new_clique_id);
 	int32_t potential_overlap = 0;
 	if(branch_identifier != 1) { // we won't bother checking the root
 		++ count_searches;
@@ -124,15 +126,18 @@ static void search_for_candidate_matches(const bloom &bl, const vector<clique> &
 	if(branch_identifier >= power_up) {
 		// branch_identifier - power_up is a candidate clique
 		const int32_t cand_clique_id = branch_identifier - power_up; // the clique we think has sufficient nodes
-		const int32_t actual = actual_overlap(the_cliques.at(cand_clique_id), new_clique);
-		// PP3(cand_clique_id, potential_overlap, actual);
-		assert(actual <= potential_overlap); // Princeton is the first file I found that catches this. Good to see it happens so rarely
-		if(actual == potential_overlap) {
-			++ count_successes;
+		if(cand_clique_id < new_clique_id) {
+			const int32_t actual = actual_overlap(the_cliques.at(cand_clique_id), new_clique);
+			// cout << ELAPSED << '\t';
+			// PP4( cand_clique_id, new_clique_id, potential_overlap, actual);
+			assert(actual <= potential_overlap); // Princeton is the first file I found that catches this. Good to see it happens so rarely
+			if(actual == potential_overlap) {
+				++ count_successes;
+			}
 		}
 	} else {
-		search_for_candidate_matches(bl, the_cliques, new_clique, power_up, 2*branch_identifier   ,count_searches,count_successes);
-		search_for_candidate_matches(bl, the_cliques, new_clique, power_up, 2*branch_identifier+1 ,count_searches,count_successes);
+		search_for_candidate_matches(bl, the_cliques, new_clique_id, power_up, 2*branch_identifier   ,count_searches,count_successes, min_k);
+		search_for_candidate_matches(bl, the_cliques, new_clique_id, power_up, 2*branch_identifier+1 ,count_searches,count_successes, min_k);
 	}
 }
 
@@ -156,10 +161,11 @@ static void do_clique_percolation_variant_5(vector<clustering :: components> &al
 		// cout << endl;
 		int64_t searches_performed = 0;
 		int64_t search_successes = 0;
-		search_for_candidate_matches(bl, the_cliques, the_cliques.at(c), power_up, 1, searches_performed, search_successes);
-		if(c%100==0) {
+		search_for_candidate_matches(bl, the_cliques, c, power_up, 1, searches_performed, search_successes, min_k);
+		if(c%1000==0) {
 			PP3(c, the_cliques.size(), double(clock())/CLOCKS_PER_SEC);
 			PP2(searches_performed, search_successes);
+			PP3(thou(bl.l), thou(bl.calls_to_set), thou(bl.occupied));
 		}
 		add_clique_to_bloom(bl, the_cliques, c, power_up);
 		// PP(bl.occupied);
