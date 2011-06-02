@@ -105,13 +105,14 @@ public:
 
 static void add_clique_to_bloom(bloom &bl, const vector<clique> &the_cliques, const int32_t clique_id, const int32_t power_up) ;
 static int32_t actual_overlap(const clique &old_clique, const clique &new_clique) ;
-static void search_for_candidate_matches(const bloom &bl, const vector<clique> &the_cliques, const clique &new_clique, const int32_t power_up, const int32_t branch_identifier) ;
+static void search_for_candidate_matches(const bloom &bl, const vector<clique> &the_cliques, const clique &new_clique, const int32_t power_up, const int32_t branch_identifier, int64_t &count_searches, int64_t &count_successes) ;
 
-static void search_for_candidate_matches(const bloom &bl, const vector<clique> &the_cliques, const clique &new_clique, const int32_t power_up, const int32_t branch_identifier) {
+static void search_for_candidate_matches(const bloom &bl, const vector<clique> &the_cliques, const clique &new_clique, const int32_t power_up, const int32_t branch_identifier, int64_t &count_searches, int64_t &count_successes) {
 	// before we all this new clique, let's see which existing cliques it matches with
 	// we branch from the top down this time
 	int32_t potential_overlap = 0;
 	if(branch_identifier != 1) { // we won't bother checking the root
+		++ count_searches;
 		for(size_t n = 0; n < new_clique.size(); n++) {
 			const int32_t node_id = new_clique.at(n);
 			const int64_t a = (int64_t(branch_identifier) << 32) + node_id;
@@ -126,9 +127,12 @@ static void search_for_candidate_matches(const bloom &bl, const vector<clique> &
 		const int32_t actual = actual_overlap(the_cliques.at(cand_clique_id), new_clique);
 		// PP3(cand_clique_id, potential_overlap, actual);
 		assert(actual <= potential_overlap); // Princeton is the first file I found that catches this. Good to see it happens so rarely
+		if(actual == potential_overlap) {
+			++ count_successes;
+		}
 	} else {
-		search_for_candidate_matches(bl, the_cliques, new_clique, power_up, 2*branch_identifier);
-		search_for_candidate_matches(bl, the_cliques, new_clique, power_up, 2*branch_identifier+1);
+		search_for_candidate_matches(bl, the_cliques, new_clique, power_up, 2*branch_identifier   ,count_searches,count_successes);
+		search_for_candidate_matches(bl, the_cliques, new_clique, power_up, 2*branch_identifier+1 ,count_searches,count_successes);
 	}
 }
 
@@ -150,8 +154,13 @@ static void do_clique_percolation_variant_5(vector<clustering :: components> &al
 	bloom bl;
 	for(int c = 0; c < C; c++) {
 		// cout << endl;
-		PP(c);
-		search_for_candidate_matches(bl, the_cliques, the_cliques.at(c), power_up, 1);
+		int64_t searches_performed = 0;
+		int64_t search_successes = 0;
+		search_for_candidate_matches(bl, the_cliques, the_cliques.at(c), power_up, 1, searches_performed, search_successes);
+		if(c%100==0) {
+			PP3(c, the_cliques.size(), double(clock())/CLOCKS_PER_SEC);
+			PP2(searches_performed, search_successes);
+		}
 		add_clique_to_bloom(bl, the_cliques, c, power_up);
 		// PP(bl.occupied);
 	}
