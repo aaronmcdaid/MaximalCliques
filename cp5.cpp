@@ -8,6 +8,7 @@
 #include <ctime>
 #include <algorithm>
 #include <vector>
+#include <tr1/functional>
 
 #include "pp.hpp"
 #include "cliques.hpp"
@@ -81,21 +82,22 @@ int main(int argc, char **argv) {
 }
 
 class bloom { // http://en.wikipedia.org/wiki/Bloom_filter
+	vector<bool> data;
 public: // make private
 	static const int64_t l = 10000000000;
-	vector<bool> data;
 	int64_t occupied;
 	int64_t calls_to_set;
+	std :: tr1 :: hash<int64_t> h;
 public:
 	bloom() : data(this->l), occupied(0), calls_to_set(0) {  // 10 giga-bits 1.25 GB
 	}
 	bool test(const int64_t a) const {
-		const int64_t b = a % l;
+		const int64_t b = h(a) % l;
 		return this->data.at(b);
 	}
 	void set(const int64_t a)  {
 		++ this->calls_to_set;
-		const int64_t b = a % l;
+		const int64_t b = h(a) % l;
 		bool pre = this->data.at(b);
 		this->data.at(b) = true;
 		if(!pre) {
