@@ -142,7 +142,7 @@ public:
 			return false;
 		}
 	}
-	bool to_leaf_id(const int32_t branch_identifier) const {
+	int32_t to_leaf_id(const int32_t branch_identifier) const {
 		assert(branch_identifier >= this->power_up);
 		const int32_t leaf_id = branch_identifier - this->power_up;
 		return leaf_id;
