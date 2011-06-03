@@ -28,6 +28,7 @@ template<typename T>
 string thou(T number);
 #define PPt(x) PP(thou(x))
 #define ELAPSED (double(clock())/CLOCKS_PER_SEC)
+#define HOWLONG "(runtime: " << ELAPSED <<"s)"
 
 
 int main(int argc, char **argv) {
@@ -317,29 +318,21 @@ static void do_clique_percolation_variant_6(vector<clustering :: components> &al
 	intersecting_clique_finder isf(power_up);
 	for(int c = 0; c < C; c++) {
 		isf.add_clique_to_bloom(the_cliques.at(c), c+power_up);
-		if(c%100 == 0) {
-			PP2("adding cliques to isf", c);
-		}
 	}
-	PP2("isf populated. ", ELAPSED);
+	cout << "isf populated. " << HOWLONG << endl;
 	PPt(isf.get_bloom_filter().l);
 	PPt(isf.get_bloom_filter().calls_to_set);
 	PPt(isf.get_bloom_filter().occupied);
 	for(int c = 0; c < 1; c++) {
 		const int32_t t = min_k-1; // at first, just for min_k-clique-percolation, we'll sort out the other levels later
 		// at first, just one clique
-		PP(c);
 		int32_t searches_performed = 0;
 		vector<int32_t> cliques_found;
 		const int32_t current_component_id = all_percolation_levels.at(min_k).my_component_id(c);
 		neighbours_of_one_clique(the_cliques, c, all_percolation_levels.at(min_k), t, current_component_id, isf, searches_performed, cliques_found);
 		int32_t search_successes = cliques_found.size();
-		PP2(searches_performed, search_successes);
+		PP3(c, searches_performed, search_successes);
 	}
-
-	PPt(isf.get_bloom_filter().l);
-	PPt(isf.get_bloom_filter().calls_to_set);
-	PPt(isf.get_bloom_filter().occupied);
 }
 
 template<typename T>
