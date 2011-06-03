@@ -307,7 +307,7 @@ static void do_clique_percolation_variant_6(vector<clustering :: components> &al
 	const int32_t C = the_cliques.size();
 	const int32_t max_k = all_percolation_levels.size()-1;
 	PP3(C, min_k, max_k);
-	assert(min_k <= max_k && C > 0);
+	assert(min_k > 0 && min_k <= max_k && C > 0);
 
 	int32_t power_up = 1; // this is to be the smallest power of 2 greater than, or equal to, the number of cliques
 	while(power_up < C)
@@ -323,6 +323,31 @@ static void do_clique_percolation_variant_6(vector<clustering :: components> &al
 	PPt(isf.get_bloom_filter().l);
 	PPt(isf.get_bloom_filter().calls_to_set);
 	PPt(isf.get_bloom_filter().occupied);
+	vector<bool> assigned_to_a_community(C, false);
+	while(1) {
+		clustering :: components & current_percolation_level = all_percolation_levels.at(min_k);
+		// - find a clique that hasn't yet been assigned to a community
+		// - create a new community by:
+		//   - make it the first 'frontier' clique
+		//   - keep adding it, and all its neighbours, to the community until the frontier is empty
+		int32_t seed_clique = 0;
+		while(assigned_to_a_community.at(seed_clique) == true
+			|| the_cliques.at(seed_clique).size() < (size_t)min_k) {
+			++seed_clique;
+			if(seed_clique == C) {
+				cout << "all communities found. " << HOWLONG << endl;
+				return;
+			}
+		}
+		PP(seed_clique);
+		const int32_t seed_component = current_percolation_level.my_component_id(seed_clique);
+		assert(seed_clique == seed_component); // it is expected to be a node on its own,
+		assert(1 == current_percolation_level.get_members(seed_component).size());
+		// this is now the frontier component
+		// now I need an empty component into which to place the cliques, but they're all non-empty at the start!
+		break;
+	}
+	cout << endl << ".. older code follows. Will delete if/when it's truly obsolete by the above while() loop" << endl;
 	for(int c = 0; c < 1; c++) {
 		const int32_t t = min_k-1; // at first, just for min_k-clique-percolation, we'll sort out the other levels later
 		// at first, just one clique
