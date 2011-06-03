@@ -2,6 +2,10 @@
 #include "graph/loading.hpp"
 #include "graph/stats.hpp"
 #include "clustering/components.hpp"
+#include "pp.hpp"
+#include "cliques.hpp"
+#include "cmdline.h"
+
 #include <getopt.h>
 #include <unistd.h>
 #include <libgen.h>
@@ -9,10 +13,8 @@
 #include <algorithm>
 #include <vector>
 #include <tr1/functional>
+#include <cassert>
 
-#include "pp.hpp"
-#include "cliques.hpp"
-#include "cmdline.h"
 
 using namespace std;
 
@@ -105,23 +107,48 @@ public:
 		}
 	}
 };
+class intersecting_clique_finder { // based on a tree of all cliques, using a bloom filter to cut branch from the search tree
+	bloom bl;
+	const int32_t power_up;
+public:
+	intersecting_clique_finder(const int32_t p) : power_up(p) {
+	}
+	const bloom & get_bloom_filter() const {
+		return this->bl;
+	}
+	int32_t overlap_estimate(const clique &new_clique, const int32_t branch_identifier) const {
+		int32_t potential_overlap = 0;
+		for(size_t n = 0; n < new_clique.size(); n++) {
+			const int32_t node_id = new_clique.at(n);
+			const int64_t a = (int64_t(branch_identifier) << 32) + node_id;
+			potential_overlap += this->bl.test(a) ? 1 : 0;
+		}
+		return potential_overlap;
+	}
+	void add_clique_to_bloom(const clique &new_clique, int32_t branch_identifier) {
+		while(branch_identifier) {
+			for(size_t n = 0; n < new_clique.size(); n++) {
+				const int32_t node_id = new_clique.at(n);
+				const int64_t a = (int64_t(branch_identifier) << 32) + node_id;
+				this->bl.set(a);
+			}
+			branch_identifier >>= 1;
+		}
+	}
+};
 
-static void add_clique_to_bloom(bloom &bl, const vector<clique> &the_cliques, const int32_t clique_id, const int32_t power_up) ;
 static int32_t actual_overlap(const clique &old_clique, const clique &new_clique) ;
-static void search_for_candidate_matches(const bloom &bl, const vector<clique> &the_cliques, const int32_t new_clique_id, const int32_t power_up, const int32_t branch_identifier, int64_t &count_searches, int64_t &count_successes, const int32_t min_k) ;
+static void search_for_candidate_matches(const intersecting_clique_finder &bl, const vector<clique> &the_cliques, const int32_t new_clique_id, const int32_t power_up, const int32_t branch_identifier, int64_t &count_searches, int64_t &count_successes, const int32_t min_k) ;
 
-static void search_for_candidate_matches(const bloom &bl, const vector<clique> &the_cliques, const int32_t new_clique_id, const int32_t power_up, const int32_t branch_identifier, int64_t &count_searches, int64_t &count_successes, const int32_t min_k) {
+
+static void search_for_candidate_matches(const intersecting_clique_finder &isf, const vector<clique> &the_cliques, const int32_t new_clique_id, const int32_t power_up, const int32_t branch_identifier, int64_t &count_searches, int64_t &count_successes, const int32_t min_k) {
 	// before we all this new clique, let's see which existing cliques it matches with
 	// we branch from the top down this time
 	const clique &new_clique = the_cliques.at(new_clique_id);
 	int32_t potential_overlap = 0;
 	if(branch_identifier != 1) { // we won't bother checking the root
 		++ count_searches;
-		for(size_t n = 0; n < new_clique.size(); n++) {
-			const int32_t node_id = new_clique.at(n);
-			const int64_t a = (int64_t(branch_identifier) << 32) + node_id;
-			potential_overlap += bl.test(a) ? 1 : 0;
-		}
+		potential_overlap = isf.overlap_estimate(new_clique, branch_identifier);
 		if(potential_overlap < min_k-1)
 			return;
 	}
@@ -138,8 +165,8 @@ static void search_for_candidate_matches(const bloom &bl, const vector<clique> &
 			}
 		}
 	} else {
-		search_for_candidate_matches(bl, the_cliques, new_clique_id, power_up, 2*branch_identifier   ,count_searches,count_successes, min_k);
-		search_for_candidate_matches(bl, the_cliques, new_clique_id, power_up, 2*branch_identifier+1 ,count_searches,count_successes, min_k);
+		search_for_candidate_matches(isf, the_cliques, new_clique_id, power_up, 2*branch_identifier   ,count_searches,count_successes, min_k);
+		search_for_candidate_matches(isf, the_cliques, new_clique_id, power_up, 2*branch_identifier+1 ,count_searches,count_successes, min_k);
 	}
 }
 
@@ -158,24 +185,24 @@ static void do_clique_percolation_variant_5(vector<clustering :: components> &al
 	// go through each clique, from the 'earlier' to 'later' cliques.
 	// for each clique, find all the 'earlier' cliques with which it overlaps by at least min_k-1
 	// feed those results into the components
-	bloom bl;
+	intersecting_clique_finder isf(power_up);
 	for(int c = 0; c < C; c++) {
 		// cout << endl;
 		int64_t searches_performed = 0;
 		int64_t search_successes = 0;
-		search_for_candidate_matches(bl, the_cliques, c, power_up, 1, searches_performed, search_successes, min_k);
+		search_for_candidate_matches(isf, the_cliques, c, power_up, 1, searches_performed, search_successes, min_k);
 		if(c%1000==0) {
 			PP3(c, the_cliques.size(), double(clock())/CLOCKS_PER_SEC);
 			PP2(searches_performed, search_successes);
-			PP3(thou(bl.l), thou(bl.calls_to_set), thou(bl.occupied));
+			PP3(thou(isf.get_bloom_filter().l), thou(isf.get_bloom_filter().calls_to_set), thou(isf.get_bloom_filter().occupied));
 		}
-		add_clique_to_bloom(bl, the_cliques, c, power_up);
+		isf.add_clique_to_bloom(the_cliques.at(c), c+power_up);
 		// PP(bl.occupied);
 	}
 
-	PPt(bl.l);
-	PPt(bl.calls_to_set);
-	PPt(bl.occupied);
+	PPt(isf.get_bloom_filter().l);
+	PPt(isf.get_bloom_filter().calls_to_set);
+	PPt(isf.get_bloom_filter().occupied);
 }
 
 template<typename T>
@@ -186,22 +213,6 @@ string thou(T number) {
 	return ss.str();
 }
 
-static void add_clique_to_bloom(bloom &bl, const vector<clique> &the_cliques, const int32_t clique_id, const int32_t power_up) {
-	int32_t p = power_up;
-	int32_t cl = clique_id;
-	const clique new_clique = the_cliques.at(clique_id);
-	while(p) {
-		assert(cl < p);
-		const int32_t branch_identifier = cl + p;
-		for(size_t n = 0; n < new_clique.size(); n++) {
-			const int32_t node_id = new_clique.at(n);
-			const int64_t a = (int64_t(branch_identifier) << 32) + node_id;
-			bl.set(a);
-		}
-		p >>= 1;
-		cl >>= 1;
-	}
-}
 
 static int32_t actual_overlap(const clique &old_clique, const clique &new_clique) {
 	vector<int32_t> intersection;
