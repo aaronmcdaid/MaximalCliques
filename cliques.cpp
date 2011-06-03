@@ -61,7 +61,7 @@ typedef set<V> not_type;
 
 struct CliqueReceiver;
 static void cliquesWorker(const SimpleIntGraph &g, CliqueReceiver *send_cliques_here, unsigned int minimumSize, vector<V> & Compsub, list_of_ints Not, list_of_ints Candidates);
-static void findCliques(const SimpleIntGraph &g, CliqueReceiver *cliquesOut, unsigned int minimumSize);
+static void findCliques(const SimpleIntGraph &g, CliqueReceiver *cliquesOut, unsigned int minimumSize, const bool verbose);
 static void cliquesForOneNode(const SimpleIntGraph &g, CliqueReceiver *send_cliques_here, int minimumSize, V v);
 static void find_node_with_fewest_discs(int &fewestDisc, int &fewestDiscVertex, bool &fewestIsInCands, const list_of_ints &Not, const list_of_ints &Candidates, const SimpleIntGraph &g);
 static const bool verbose = false;
@@ -223,7 +223,7 @@ struct CliquesToStdout : public CliqueReceiver {
 
 struct SelfLoopsNotSupportedException {
 };
-static void findCliques(const SimpleIntGraph &g, CliqueReceiver *send_cliques_here, unsigned int minimumSize) {
+static void findCliques(const SimpleIntGraph &g, CliqueReceiver *send_cliques_here, unsigned int minimumSize, const bool verbose) {
 	unless(minimumSize >= 3) throw std :: invalid_argument("the minimumSize for findCliques() must be at least 3");
 
 	for(int32_t r = 0; r < g->numRels(); r++) {
@@ -233,7 +233,7 @@ static void findCliques(const SimpleIntGraph &g, CliqueReceiver *send_cliques_he
 	}
 
 	for(V v = 0; v < (V) g->numNodes(); v++) {
-		if(v && v % 100 ==0)
+		if(verbose && v && v % 100 ==0)
 			cerr << "processing node: " << v << " ..." <<  endl;
 		cliquesForOneNode(g, send_cliques_here, minimumSize, v);
 	}
@@ -242,7 +242,7 @@ void cliquesToStdout(const graph :: NetworkInterfaceConvertedToString * net, uns
 	assert(minimumSize >= 3);
 
 	CliquesToStdout send_cliques_here(net);
-	findCliques(net->get_plain_graph(), & send_cliques_here, minimumSize);
+	findCliques(net->get_plain_graph(), & send_cliques_here, minimumSize, true);
 	cerr << send_cliques_here.n << " cliques found" << endl;
 	if(send_cliques_here.n > 0) {
 		assert(!send_cliques_here.cliqueFrequencies.empty());
@@ -265,7 +265,7 @@ struct CliquesToStdoutFunctor : public CliqueReceiver {
 void cliquesToVector          (const graph :: NetworkInterfaceConvertedToString * net, unsigned int minimumSize, std :: vector< std :: vector<int32_t> > & output_vector ) {
 	assert(minimumSize >= 3);
 	CliquesToStdoutFunctor send_cliques_here( output_vector );
-	findCliques(net->get_plain_graph(), & send_cliques_here, minimumSize);
+	findCliques(net->get_plain_graph(), & send_cliques_here, minimumSize, false);
 }
 
 static int32_t count_disconnections(const set<int> &cands, const int32_t v, const SimpleIntGraph &g) {
