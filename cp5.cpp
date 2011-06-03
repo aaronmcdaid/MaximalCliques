@@ -181,7 +181,7 @@ static void do_clique_percolation_variant_5(vector<clustering :: components> &al
 template<typename T>
 string thou(T number) {
 	std::ostringstream ss;
-	ss.imbue(std::locale("en_US.UTF-8"));
+	ss.imbue(std::locale(""));
 	ss << number;
 	return ss.str();
 }
