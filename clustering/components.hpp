@@ -4,6 +4,7 @@
 #include <vector>
 #include <list>
 #include <cstdlib>
+#include <cassert>
 
 namespace clustering {
 
@@ -16,9 +17,9 @@ public:
 	components() : N(0) {}
 	void setN(const int32_t N);
 	void merge_components(const int32_t cl1, const int32_t cl2); // merge two non-empty components
-	int32_t my_component_id(const int32_t n) {
+	int32_t my_component_id(const int32_t n) const {
 		assert(n>=0 && n<N);
-		return this -> my_component_id(n);
+		return this -> my_component.at(n);
 	}
 };
 	
