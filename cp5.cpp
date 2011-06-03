@@ -207,9 +207,15 @@ static void recursive_search(const intersecting_clique_finder &search_tree
 	if(search_tree.is_leaf_node(branch_identifier)) {
 		// time to check if this clique really does have a big enough overlap
 		const int32_t leaf_clique_id = search_tree.to_leaf_id(branch_identifier);
-		const int32_t actual = actual_overlap(the_cliques.at(leaf_clique_id), current_clique);
+		assert(leaf_clique_id >= 0); // remember, this leaf mightn't really represent a clique (i.e. leaf_clique_id >= the_cliques.size()) 
+
+		const int32_t actual = size_t(leaf_clique_id) < the_cliques.size()
+			? actual_overlap(the_cliques.at(leaf_clique_id), current_clique)
+			: 0
+			;
 		PP3(branch_identifier, t, actual);
 		if(actual >= t) {
+			assert(leaf_clique_id >= 0 && size_t(leaf_clique_id) < the_cliques.size());
 			PP4(branch_identifier, leaf_clique_id, actual, t);
 			cliques_found.push_back(leaf_clique_id);
 		}
