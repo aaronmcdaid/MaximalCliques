@@ -60,4 +60,9 @@ namespace clustering {
 			assert(new_size == old_size+1);
 		}
 	}
+	int32_t components :: top_empty_component() const {
+		assert(!this->empty_components.empty());
+		this->empty_components.top();
+		return this->empty_components.top();
+	}
 } // namespace clustering

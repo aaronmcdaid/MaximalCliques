@@ -23,6 +23,7 @@ public:
 	int32_t my_component_id(const int32_t n) const;
 	const misc :: list_with_constant_size <int32_t> & get_members(int32_t component_id) const;
 	void move_node(const int32_t node_id, const int32_t new_component_id);
+	int32_t top_empty_component() const;
 };
 	
 } // namespace clustering
