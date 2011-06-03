@@ -2,7 +2,7 @@
 #include "graph/loading.hpp"
 #include "graph/stats.hpp"
 #include "clustering/components.hpp"
-#include "pp.hpp"
+#include "macros.hpp"
 #include "cliques.hpp"
 #include "cmdline.h"
 

@@ -7,7 +7,7 @@ using namespace std;
 #include <libgen.h>
 #include <ctime>
 
-#include "pp.hpp"
+#include "macros.hpp"
 #include "cliques.hpp"
 #include "cmdline.h"
 
