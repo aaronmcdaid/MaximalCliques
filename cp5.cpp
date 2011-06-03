@@ -7,7 +7,6 @@
 #include "cmdline.h"
 
 #include <getopt.h>
-#include <unistd.h>
 #include <libgen.h>
 #include <ctime>
 #include <algorithm>
@@ -78,8 +77,14 @@ int main(int argc, char **argv) {
 	assert(max_clique_size > 0);
 
 	vector<clustering :: components> all_percolation_levels(max_clique_size+1);
-	for(int32_t i = min_k; i <= max_clique_size; i++)
-		all_percolation_levels.at(i).setN(C);
+	for(int32_t i = min_k; i <= max_clique_size; i++) {
+		clustering :: components &one_percolation_level = all_percolation_levels.at(i);
+		one_percolation_level.setN(C);
+		for(int c=1; c<C; c++) {
+			one_percolation_level.move_node(c,0); // move 'node' c (i.e. the c-th clique) into component 0
+			// all the nodes (cliques) are in one big community for now.
+		}
+	}
 
 	// finally, call the clique_percolation algorithm proper
 
@@ -188,33 +193,49 @@ static void search_for_candidate_matches(const intersecting_clique_finder &isf, 
 
 static void recursive_search(const intersecting_clique_finder &search_tree
 		, const int32_t branch_identifier
-		, const clique &current_clique
+		, const int32_t current_clique_id
 		, const int32_t t
 		, const vector<clique> &the_cliques
 		, int32_t &searches_performed
 		, vector<int32_t> &cliques_found
+		, const clustering :: components & current_percolation_level
+		, const int32_t component_to_skip
 		) {
 	// PRECONDITION:
 	//    - we assume that the current branch in the tree already has enough nodes
 	//
 	// is this a leaf node?
 	//   - if at a leaf node
-	//     - perform the validation. (actual_overlap)
+	//     - is it a valid clique (i.e. leaf_node_id < the_cliques.size()?
+	//       - if so, ignore it
+	//       - if not:
+	//         - is it already in the community we're forming? if so, ignore it (but count it)
+	//         - perform the validation. (actual_overlap)
 	//   - if not at a leaf
 	//     - decide which sub branches, if any, to visit. And decide in what order.
 
+	const clique &current_clique = the_cliques.at(current_clique_id);
 	if(search_tree.is_leaf_node(branch_identifier)) {
-		// time to check if this clique really does have a big enough overlap
 		const int32_t leaf_clique_id = search_tree.to_leaf_id(branch_identifier);
 		assert(leaf_clique_id >= 0); // remember, this leaf mightn't really represent a clique (i.e. leaf_clique_id >= the_cliques.size()) 
+		if(size_t(leaf_clique_id) >= the_cliques.size()) {
+			// PP2(leaf_clique_id, the_cliques.size()); // TODO: get out of branches earlier
+		} else {
+			const int32_t component_id_of_leaf = current_percolation_level.my_component_id(leaf_clique_id);
+			if(component_id_of_leaf == component_to_skip) {
+				PP2(component_id_of_leaf, component_to_skip);
+			} else {
+				// time to check if this clique really does have a big enough overlap
 
-		const int32_t actual = size_t(leaf_clique_id) < the_cliques.size()
-			? actual_overlap(the_cliques.at(leaf_clique_id), current_clique)
-			: 0
-			;
-		if(actual >= t) {
-			assert(leaf_clique_id >= 0 && size_t(leaf_clique_id) < the_cliques.size());
-			cliques_found.push_back(leaf_clique_id);
+				assert(size_t(leaf_clique_id) < the_cliques.size());
+				const int32_t actual = actual_overlap(the_cliques.at(leaf_clique_id), current_clique) ;
+				assert(leaf_clique_id != current_clique_id);
+				assert(actual < (int32_t)current_clique.size()); // don't allow it to match with itself, did you forget to include the seed into the community?
+				if(actual >= t) {
+					assert(leaf_clique_id >= 0 && size_t(leaf_clique_id) < the_cliques.size());
+					cliques_found.push_back(leaf_clique_id);
+				}
+			}
 		}
 	} else {
 		const int32_t left_subnode_id = branch_identifier << 1;
@@ -229,11 +250,11 @@ static void recursive_search(const intersecting_clique_finder &search_tree
 #ifdef branch_cut
 		if(potential_overlap_left >= t)
 #endif
-			recursive_search(search_tree, left_subnode_id, current_clique, t, the_cliques, searches_performed, cliques_found);
+			recursive_search(search_tree, left_subnode_id, current_clique_id, t, the_cliques, searches_performed, cliques_found, current_percolation_level, component_to_skip);
 #ifdef branch_cut
 		if(potential_overlap_right >= t)
 #endif
-			recursive_search(search_tree, right_subnode_id, current_clique, t, the_cliques, searches_performed, cliques_found);
+			recursive_search(search_tree, right_subnode_id, current_clique_id, t, the_cliques, searches_performed, cliques_found, current_percolation_level, component_to_skip);
 	}
 }
 
@@ -255,9 +276,17 @@ static void neighbours_of_one_clique(const vector<clique> &the_cliques
 	//    - the list of cliques adjacent to the clique (at least t nodes in common),
 	//    - BUT without the cliques that are already in the current component
 		assert(current_component_id == components.my_component_id(current_clique_id));
-		const clique &current_clique = the_cliques.at(current_clique_id);
 		const int32_t root_node = 1;
-		recursive_search(search_tree, root_node, current_clique, t, the_cliques, searches_performed, cliques_found);
+		recursive_search(search_tree
+				, root_node
+				, current_clique_id
+				, t
+				, the_cliques
+				, searches_performed
+				, cliques_found
+				, components
+				, current_component_id
+				);
 }
 
 struct too_many_cliques_exception : public std :: exception { };
@@ -326,6 +355,7 @@ static void do_clique_percolation_variant_6(vector<clustering :: components> &al
 	vector<bool> assigned_to_a_community(C, false);
 	while(1) {
 		clustering :: components & current_percolation_level = all_percolation_levels.at(min_k);
+		const int32_t t = min_k-1; // at first, just for min_k-clique-percolation, we'll sort out the other levels later
 		// - find a clique that hasn't yet been assigned to a community
 		// - create a new community by:
 		//   - make it the first 'frontier' clique
@@ -340,13 +370,28 @@ static void do_clique_percolation_variant_6(vector<clustering :: components> &al
 			}
 		}
 		PP(seed_clique);
-		const int32_t seed_component = current_percolation_level.my_component_id(seed_clique);
-		assert(seed_clique == seed_component); // it is expected to be a node on its own,
-		assert(1 == current_percolation_level.get_members(seed_component).size());
-		// this is now the frontier component
-		// now I need an empty component into which to place the cliques, but they're all non-empty at the start!
+		stack< int32_t, vector<int32_t> > frontier_cliques;
+		frontier_cliques.push(seed_clique);
+		const int32_t component_to_grow_into = current_percolation_level.top_empty_component();
+		assert(0 == current_percolation_level.get_members(component_to_grow_into).size());
+		while(!frontier_cliques.empty()) {
+			const int32_t popped_clique = frontier_cliques.top();
+			assert(popped_clique == seed_clique);
+			frontier_cliques.pop();
+			current_percolation_level.move_node(popped_clique, component_to_grow_into);
+			{
+				int32_t searches_performed = 0;
+				vector<int32_t> fresh_frontier_cliques_found;
+				const int32_t current_component_id = current_percolation_level.my_component_id(popped_clique);
+				assert(current_component_id == component_to_grow_into);
+				neighbours_of_one_clique(the_cliques, popped_clique, current_percolation_level, t, component_to_grow_into, isf, searches_performed, fresh_frontier_cliques_found);
+				int32_t search_successes = fresh_frontier_cliques_found.size();
+				PP3(popped_clique, searches_performed, search_successes);
+			}
+		}
 		break;
 	}
+#if 0
 	cout << endl << ".. older code follows. Will delete if/when it's truly obsolete by the above while() loop" << endl;
 	for(int c = 0; c < 1; c++) {
 		const int32_t t = min_k-1; // at first, just for min_k-clique-percolation, we'll sort out the other levels later
@@ -358,6 +403,7 @@ static void do_clique_percolation_variant_6(vector<clustering :: components> &al
 		int32_t search_successes = cliques_found.size();
 		PP3(c, searches_performed, search_successes);
 	}
+#endif
 }
 
 template<typename T>
