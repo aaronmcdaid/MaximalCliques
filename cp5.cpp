@@ -120,7 +120,7 @@ public:
 };
 class intersecting_clique_finder { // based on a tree of all cliques, using a bloom filter to cut branch from the search tree
 	bloom bl;
-	const int32_t power_up;
+	const int32_t power_up; // the next power of two above the number of cliques
 public:
 	intersecting_clique_finder(const int32_t p) : power_up(p) {
 	}
@@ -353,6 +353,7 @@ static void do_clique_percolation_variant_6(vector<clustering :: components> &al
 	PPt(isf.get_bloom_filter().calls_to_set);
 	PPt(isf.get_bloom_filter().occupied);
 	vector<bool> assigned_to_a_community(C, false);
+	// vector<bool> assigned_branches; // the branches where all subleaves have already been assigned. // the recursive search should stop immediately
 	while(1) {
 		clustering :: components & current_percolation_level = all_percolation_levels.at(min_k);
 		const int32_t t = min_k-1; // at first, just for min_k-clique-percolation, we'll sort out the other levels later
@@ -383,6 +384,9 @@ static void do_clique_percolation_variant_6(vector<clustering :: components> &al
 			const int32_t popped_clique = frontier_cliques.top();
 			frontier_cliques.pop();
 
+			assert(assigned_to_a_community.at(popped_clique) == false);
+			assigned_to_a_community.at(popped_clique) = true;
+
 			int32_t searches_performed = 0;
 			vector<int32_t> fresh_frontier_cliques_found;
 			const int32_t current_component_id = current_percolation_level.my_component_id(popped_clique);
@@ -404,7 +408,8 @@ static void do_clique_percolation_variant_6(vector<clustering :: components> &al
 			PP2(frontier_cliques.size(), the_cliques.size());
 			assert(frontier_cliques.size() < the_cliques.size());
 		}
-		break;
+		const int32_t final_size_of_growing_community = current_percolation_level.get_members(component_to_grow_into).size();
+		PP(final_size_of_growing_community);
 	}
 #if 0
 	cout << endl << ".. older code follows. Will delete if/when it's truly obsolete by the above while() loop" << endl;
