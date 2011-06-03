@@ -135,6 +135,18 @@ public:
 			branch_identifier >>= 1;
 		}
 	}
+	bool is_leaf_node(const int32_t branch_identifier) const {
+		if(branch_identifier >= this->power_up) {
+			return true;
+		} else {
+			return false;
+		}
+	}
+	bool to_leaf_id(const int32_t branch_identifier) const {
+		assert(branch_identifier >= this->power_up);
+		const int32_t leaf_id = branch_identifier - this->power_up;
+		return leaf_id;
+	}
 };
 
 static int32_t actual_overlap(const clique &old_clique, const clique &new_clique) ;
