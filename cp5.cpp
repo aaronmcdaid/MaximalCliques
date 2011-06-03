@@ -195,7 +195,6 @@ static void recursive_search(const intersecting_clique_finder &search_tree
 		, int32_t &searches_performed
 		, vector<int32_t> &cliques_found
 		) {
-		PP(__LINE__);
 	// PRECONDITION:
 	//    - we assume that the current branch in the tree already has enough nodes
 	//
@@ -209,17 +208,30 @@ static void recursive_search(const intersecting_clique_finder &search_tree
 		// time to check if this clique really does have a big enough overlap
 		const int32_t leaf_clique_id = search_tree.to_leaf_id(branch_identifier);
 		const int32_t actual = actual_overlap(the_cliques.at(leaf_clique_id), current_clique);
-		PP2(t, actual);
-		if(actual >= t)
+		PP3(branch_identifier, t, actual);
+		if(actual >= t) {
+			PP4(branch_identifier, leaf_clique_id, actual, t);
 			cliques_found.push_back(leaf_clique_id);
+		}
 	} else {
-		++searches_performed;
-		const int32_t potential_overlap = search_tree.overlap_estimate(current_clique, branch_identifier);
-		PP(__LINE__);
-		if(potential_overlap < t)
-			return;
+		const int32_t left_subnode_id = branch_identifier << 1;
+		assert(left_subnode_id >= 0);  // just in case the <<1 made it negative
+		const int32_t right_subnode_id = left_subnode_id + 1;
+// #define branch_cut
+#ifdef branch_cut
+		const int32_t potential_overlap_left  = search_tree.overlap_estimate(current_clique, left_subnode_id);
+		const int32_t potential_overlap_right = search_tree.overlap_estimate(current_clique, right_subnode_id);
+#endif
+		searches_performed += 2; // checked the left and the right
+#ifdef branch_cut
+		if(potential_overlap_left >= t)
+#endif
+			recursive_search(search_tree, left_subnode_id, current_clique, t, the_cliques, searches_performed, cliques_found);
+#ifdef branch_cut
+		if(potential_overlap_right >= t)
+#endif
+			recursive_search(search_tree, right_subnode_id, current_clique, t, the_cliques, searches_performed, cliques_found);
 	}
-	PP(__LINE__);
 }
 
 static void neighbours_of_one_clique(const vector<clique> &the_cliques
@@ -231,7 +243,6 @@ static void neighbours_of_one_clique(const vector<clique> &the_cliques
 		, int32_t &searches_performed
 		, vector<int32_t> &cliques_found
 		) {
-		PP(__LINE__);
 	// given:
 	//    - one clique,
 	//    - a component object describing all the components for the current value of k,
@@ -241,12 +252,9 @@ static void neighbours_of_one_clique(const vector<clique> &the_cliques
 	//    - the list of cliques adjacent to the clique (at least t nodes in common),
 	//    - BUT without the cliques that are already in the current component
 		assert(current_component_id == components.my_component_id(current_clique_id));
-		PP(__LINE__);
 		const clique &current_clique = the_cliques.at(current_clique_id);
 		const int32_t root_node = 1;
-		PP(__LINE__);
 		recursive_search(search_tree, root_node, current_clique, t, the_cliques, searches_performed, cliques_found);
-		PP(__LINE__);
 }
 
 static void do_clique_percolation_variant_5(vector<clustering :: components> &all_percolation_levels, const int32_t min_k, const vector< clique > &the_cliques) {
@@ -319,10 +327,8 @@ static void do_clique_percolation_variant_6(vector<clustering :: components> &al
 		PP(c);
 		int32_t searches_performed = 0;
 		vector<int32_t> cliques_found;
-		PP(__LINE__);
 		const int32_t current_component_id = all_percolation_levels.at(min_k).my_component_id(c);
 		neighbours_of_one_clique(the_cliques, c, all_percolation_levels.at(min_k), t, current_component_id, isf, searches_performed, cliques_found);
-		PP(__LINE__);
 		int32_t search_successes = cliques_found.size();
 		PP2(searches_performed, search_successes);
 	}
