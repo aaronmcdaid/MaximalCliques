@@ -3,7 +3,6 @@ using namespace std;
 #include "graph/loading.hpp"
 #include "graph/stats.hpp"
 #include <getopt.h>
-#include <unistd.h>
 #include <libgen.h>
 #include <ctime>
 
