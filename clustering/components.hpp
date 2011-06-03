@@ -21,6 +21,10 @@ public:
 		assert(n>=0 && n<N);
 		return this -> my_component.at(n);
 	}
+	const std :: list <int32_t> & get_members(int32_t component_id) const {
+		assert(component_id >= 0 && component_id < this->N);
+		return this->members.at(component_id);
+	}
 };
 	
 } // namespace clustering
