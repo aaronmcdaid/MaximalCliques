@@ -213,17 +213,15 @@ static void recursive_search(const intersecting_clique_finder &search_tree
 			? actual_overlap(the_cliques.at(leaf_clique_id), current_clique)
 			: 0
 			;
-		PP3(branch_identifier, t, actual);
 		if(actual >= t) {
 			assert(leaf_clique_id >= 0 && size_t(leaf_clique_id) < the_cliques.size());
-			PP4(branch_identifier, leaf_clique_id, actual, t);
 			cliques_found.push_back(leaf_clique_id);
 		}
 	} else {
 		const int32_t left_subnode_id = branch_identifier << 1;
 		assert(left_subnode_id >= 0);  // just in case the <<1 made it negative
 		const int32_t right_subnode_id = left_subnode_id + 1;
-// #define branch_cut
+#define branch_cut
 #ifdef branch_cut
 		const int32_t potential_overlap_left  = search_tree.overlap_estimate(current_clique, left_subnode_id);
 		const int32_t potential_overlap_right = search_tree.overlap_estimate(current_clique, right_subnode_id);
