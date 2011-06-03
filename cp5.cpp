@@ -66,7 +66,7 @@ int main(int argc, char **argv) {
 
 	const int32_t C = the_cliques.size();
 	if(C==0) {
-		cerr << endl << "Error: you don't have any cliques of at least size " << min_k << " Exiting." << endl;
+		cerr << endl << "Error: you don't have any cliques of at least size " << min_k << ". Exiting." << endl;
 		exit(1);
 	}
 	int max_clique_size = 0; // to store the size of the biggest clique
@@ -119,9 +119,7 @@ class intersecting_clique_finder { // based on a tree of all cliques, using a bl
 public:
 	intersecting_clique_finder(const int32_t p) : power_up(p) {
 	}
-	const bloom & get_bloom_filter() const {
-		return this->bl;
-	}
+	GET(bl, get_bloom_filter);
 	int32_t overlap_estimate(const clique &new_clique, const int32_t branch_identifier) const {
 		int32_t potential_overlap = 0;
 		for(size_t n = 0; n < new_clique.size(); n++) {
