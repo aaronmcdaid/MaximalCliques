@@ -14,6 +14,7 @@
 #include <vector>
 #include <tr1/functional>
 #include <cassert>
+#include <limits>
 
 
 using namespace std;
@@ -282,7 +283,14 @@ static void do_clique_percolation_variant_5(vector<clustering :: components> &al
 	PPt(isf.get_bloom_filter().calls_to_set);
 	PPt(isf.get_bloom_filter().occupied);
 }
+
+struct too_many_cliques_exception : public std :: exception {
+};
+
 static void do_clique_percolation_variant_6(vector<clustering :: components> &all_percolation_levels, const int32_t min_k, const vector< clique > &the_cliques) {
+	if(the_cliques.size() > static_cast<size_t>(std :: numeric_limits<int32_t> :: max())) {
+		throw too_many_cliques_exception();
+	}
 	const int32_t C = the_cliques.size();
 	const int32_t max_k = all_percolation_levels.size()-1;
 	PP3(C, min_k, max_k);
