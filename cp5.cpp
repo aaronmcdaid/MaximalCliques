@@ -124,7 +124,7 @@ class intersecting_clique_finder { // based on a tree of all cliques, using a bl
 public:
 	intersecting_clique_finder(const int32_t p) : power_up(p) {
 	}
-	GET(bl, get_bloom_filter);
+	const bloom & get_bloom_filter(void) const { return this->bl; }
 	int32_t overlap_estimate(const clique &new_clique, const int32_t branch_identifier) const {
 		int32_t potential_overlap = 0;
 		for(size_t n = 0; n < new_clique.size(); n++) {

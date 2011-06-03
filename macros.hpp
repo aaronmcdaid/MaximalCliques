@@ -4,4 +4,3 @@
 #define PP3(x,y,z)             std :: cout << #x << ',' << #y << ',' << #z                              << ":\t" << (x) << " , " << (y) << " , " << (z) << std :: endl
 #define PP4(x,y,z,w)           std :: cout << #x << ',' << #y << ',' << #z << ',' << #w                 << ":\t" << (x) << " , " << (y) << " , " << (z) << " , " << w << std :: endl
 #define unless(x) if(!(x))
-#define GET(data_member, desired_method_name) const typeof(data_member) & desired_method_name(void) const { return this->data_member; }
