@@ -21,6 +21,7 @@ using namespace std;
 typedef vector<int32_t> clique; // the nodes will be in increasing numerical order
 
 static void do_clique_percolation_variant_5(vector<clustering :: components> &all_percolation_levels, const int32_t min_k, const vector< clique > &the_cliques) ;
+static void do_clique_percolation_variant_6(vector<clustering :: components> &all_percolation_levels, const int32_t min_k, const vector< clique > &the_cliques) ;
 
 template<typename T>
 string thou(T number);
@@ -80,7 +81,10 @@ int main(int argc, char **argv) {
 
 	// finally, call the clique_percolation algorithm proper
 
-	do_clique_percolation_variant_5(all_percolation_levels, min_k, the_cliques);
+	if(0)
+		do_clique_percolation_variant_5(all_percolation_levels, min_k, the_cliques);
+	else
+		do_clique_percolation_variant_6(all_percolation_levels, min_k, the_cliques);
 }
 
 class bloom { // http://en.wikipedia.org/wiki/Bloom_filter
@@ -182,6 +186,68 @@ static void search_for_candidate_matches(const intersecting_clique_finder &isf, 
 	}
 }
 
+static void recursive_search(const intersecting_clique_finder &search_tree
+		, const int32_t branch_identifier
+		, const clique &current_clique
+		, const int32_t t
+		, const vector<clique> &the_cliques
+		, int32_t &searches_performed
+		, vector<int32_t> &cliques_found
+		) {
+		PP(__LINE__);
+	// PRECONDITION:
+	//    - we assume that the current branch in the tree already has enough nodes
+	//
+	// is this a leaf node?
+	//   - if at a leaf node
+	//     - perform the validation. (actual_overlap)
+	//   - if not at a leaf
+	//     - decide which sub branches, if any, to visit. And decide in what order.
+
+	if(search_tree.is_leaf_node(branch_identifier)) {
+		// time to check if this clique really does have a big enough overlap
+		const int32_t leaf_clique_id = search_tree.to_leaf_id(branch_identifier);
+		const int32_t actual = actual_overlap(the_cliques.at(leaf_clique_id), current_clique);
+		PP2(t, actual);
+		if(actual >= t)
+			cliques_found.push_back(leaf_clique_id);
+	} else {
+		++searches_performed;
+		const int32_t potential_overlap = search_tree.overlap_estimate(current_clique, branch_identifier);
+		PP(__LINE__);
+		if(potential_overlap < t)
+			return;
+	}
+	PP(__LINE__);
+}
+
+static void neighbours_of_one_clique(const vector<clique> &the_cliques
+		, const int32_t current_clique_id
+		, const clustering :: components & components
+		, const int32_t t
+		, const int32_t current_component_id
+		, const intersecting_clique_finder & search_tree
+		, int32_t &searches_performed
+		, vector<int32_t> &cliques_found
+		) {
+		PP(__LINE__);
+	// given:
+	//    - one clique,
+	//    - a component object describing all the components for the current value of k,
+	//    - the intersection threshold (t)   { e.g. t = k-1 }
+	//    - the component the clique is currently in (it's probably just been recently added)
+	// return:
+	//    - the list of cliques adjacent to the clique (at least t nodes in common),
+	//    - BUT without the cliques that are already in the current component
+		assert(current_component_id == components.my_component_id(current_clique_id));
+		PP(__LINE__);
+		const clique &current_clique = the_cliques.at(current_clique_id);
+		const int32_t root_node = 1;
+		PP(__LINE__);
+		recursive_search(search_tree, root_node, current_clique, t, the_cliques, searches_performed, cliques_found);
+		PP(__LINE__);
+}
+
 static void do_clique_percolation_variant_5(vector<clustering :: components> &all_percolation_levels, const int32_t min_k, const vector< clique > &the_cliques) {
 	const int32_t C = the_cliques.size();
 	const int32_t max_k = all_percolation_levels.size()-1;
@@ -210,6 +276,47 @@ static void do_clique_percolation_variant_5(vector<clustering :: components> &al
 		}
 		isf.add_clique_to_bloom(the_cliques.at(c), c+power_up);
 		// PP(bl.occupied);
+	}
+
+	PPt(isf.get_bloom_filter().l);
+	PPt(isf.get_bloom_filter().calls_to_set);
+	PPt(isf.get_bloom_filter().occupied);
+}
+static void do_clique_percolation_variant_6(vector<clustering :: components> &all_percolation_levels, const int32_t min_k, const vector< clique > &the_cliques) {
+	const int32_t C = the_cliques.size();
+	const int32_t max_k = all_percolation_levels.size()-1;
+	PP3(C, min_k, max_k);
+	assert(min_k <= max_k && C > 0);
+
+	int32_t power_up = 1; // this is to be the smallest power of 2 greater than, or equal to, the number of cliques
+	while(power_up < C)
+		power_up <<= 1;
+	assert(power_up > 0); // make sure it hasn't looped around and become negative!
+	PP2(C, power_up);
+
+	intersecting_clique_finder isf(power_up);
+	for(int c = 0; c < C; c++) {
+		isf.add_clique_to_bloom(the_cliques.at(c), c+power_up);
+		if(c%100 == 0) {
+			PP2("adding cliques to isf", c);
+		}
+	}
+	PP2("isf populated. ", ELAPSED);
+	PPt(isf.get_bloom_filter().l);
+	PPt(isf.get_bloom_filter().calls_to_set);
+	PPt(isf.get_bloom_filter().occupied);
+	for(int c = 0; c < 1; c++) {
+		const int32_t t = min_k-1; // at first, just for min_k-clique-percolation, we'll sort out the other levels later
+		// at first, just one clique
+		PP(c);
+		int32_t searches_performed = 0;
+		vector<int32_t> cliques_found;
+		PP(__LINE__);
+		const int32_t current_component_id = all_percolation_levels.at(min_k).my_component_id(c);
+		neighbours_of_one_clique(the_cliques, c, all_percolation_levels.at(min_k), t, current_component_id, isf, searches_performed, cliques_found);
+		PP(__LINE__);
+		int32_t search_successes = cliques_found.size();
+		PP2(searches_performed, search_successes);
 	}
 
 	PPt(isf.get_bloom_filter().l);
