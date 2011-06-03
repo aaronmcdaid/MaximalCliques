@@ -1,3 +1,6 @@
 [submodule "graph"]
 	path = graph
 	url = /home/aaronmcdaid/Code/MyCode/MyLibraries/graph
+[submodule "misc"]
+	path = misc
+	url = git@github.com:aaronmcdaid/misc.cpp.git
