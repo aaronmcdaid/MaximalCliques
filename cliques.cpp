@@ -1,4 +1,5 @@
 #include "cliques.hpp"
+#include "misc/list_with_constant_size.hpp"
 #include <set>
 #include <map>
 #include <list>
@@ -15,48 +16,7 @@ using namespace std;
 namespace cliques {
 
 typedef int32_t V;
-//typedef list<V> list_of_ints;
-struct list_of_ints : private list<int32_t> {
-	size_t sz;
-	typedef list<int32_t> :: const_iterator const_iterator;
-	typedef list<int32_t> :: iterator iterator;
-	typedef list<int32_t> :: const_reference const_reference;
-
-	explicit list_of_ints() : list<int32_t>(), sz(0) {
-	}
-
-	const list<int32_t> & get() const {
-		return *this;
-	}
-	void push_back(int32_t v) {
-		++ sz;
-		this -> list<int32_t> :: push_back(v);
-	}
-	size_t size() const {
-		// assert (sz == this -> list<int32_t> :: size()) ;
-		return sz;
-	}
-	bool empty() const {
-		return this -> list<int32_t> :: empty();
-	}
-	iterator begin() {
-		return this -> list<int32_t> :: begin();
-	}
-	iterator end() {
-		return this -> list<int32_t> :: end();
-	}
-	iterator erase(iterator i) {
-		-- sz;
-		return this -> list<int32_t> :: erase(i);
-	}
-	void insert(iterator i, int32_t v) {
-		++ sz;
-		this -> list<int32_t> :: insert(i, v);
-	}
-private:
-	list_of_ints(const list<int32_t> &) {} // this should never happen. It'd be a problem as this->sz would then be wrong, I think.
-
-};
+typedef misc :: list_with_constant_size<V> list_of_ints;
 typedef set<V> not_type;
 
 struct CliqueReceiver;
