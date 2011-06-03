@@ -223,7 +223,7 @@ static void recursive_search(const intersecting_clique_finder &search_tree
 		} else {
 			const int32_t component_id_of_leaf = current_percolation_level.my_component_id(leaf_clique_id);
 			if(component_id_of_leaf == component_to_skip) {
-				PP2(component_id_of_leaf, component_to_skip);
+				// PP2(component_id_of_leaf, component_to_skip);
 			} else {
 				// time to check if this clique really does have a big enough overlap
 
@@ -374,20 +374,35 @@ static void do_clique_percolation_variant_6(vector<clustering :: components> &al
 		frontier_cliques.push(seed_clique);
 		const int32_t component_to_grow_into = current_percolation_level.top_empty_component();
 		assert(0 == current_percolation_level.get_members(component_to_grow_into).size());
+
+		// PP(__LINE__);
+		current_percolation_level.move_node(seed_clique, component_to_grow_into);
+		// PP(__LINE__);
+
 		while(!frontier_cliques.empty()) {
 			const int32_t popped_clique = frontier_cliques.top();
-			assert(popped_clique == seed_clique);
 			frontier_cliques.pop();
-			current_percolation_level.move_node(popped_clique, component_to_grow_into);
-			{
-				int32_t searches_performed = 0;
-				vector<int32_t> fresh_frontier_cliques_found;
-				const int32_t current_component_id = current_percolation_level.my_component_id(popped_clique);
-				assert(current_component_id == component_to_grow_into);
-				neighbours_of_one_clique(the_cliques, popped_clique, current_percolation_level, t, component_to_grow_into, isf, searches_performed, fresh_frontier_cliques_found);
-				int32_t search_successes = fresh_frontier_cliques_found.size();
-				PP3(popped_clique, searches_performed, search_successes);
+
+			int32_t searches_performed = 0;
+			vector<int32_t> fresh_frontier_cliques_found;
+			const int32_t current_component_id = current_percolation_level.my_component_id(popped_clique);
+			assert(current_component_id == component_to_grow_into);
+			neighbours_of_one_clique(the_cliques, popped_clique, current_percolation_level, t, component_to_grow_into, isf, searches_performed, fresh_frontier_cliques_found);
+			int32_t search_successes = fresh_frontier_cliques_found.size();
+			PP3(popped_clique, searches_performed, search_successes);
+			PP2(frontier_cliques.size(), fresh_frontier_cliques_found.size());
+			const int32_t old_size_of_growing_community = current_percolation_level.get_members(component_to_grow_into).size();
+			for(int x = 0; x < (int)fresh_frontier_cliques_found.size(); x++) {
+				const int32_t frontier_clique_to_be_moved_in = fresh_frontier_cliques_found.at(x);
+				frontier_cliques.push(frontier_clique_to_be_moved_in);
+				// PP(__LINE__);
+				current_percolation_level.move_node(frontier_clique_to_be_moved_in, component_to_grow_into);
+				// PP(__LINE__);
 			}
+			const int32_t new_size_of_growing_community = current_percolation_level.get_members(component_to_grow_into).size();
+			PP2(old_size_of_growing_community, new_size_of_growing_community);
+			PP2(frontier_cliques.size(), the_cliques.size());
+			assert(frontier_cliques.size() < the_cliques.size());
 		}
 		break;
 	}
