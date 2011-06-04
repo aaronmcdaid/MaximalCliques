@@ -415,7 +415,7 @@ static void do_clique_percolation_variant_5b(vector<clustering :: components> &a
 		candidate_components.clear();
 		PP(__LINE__);
 		for(int32_t f = 0; f < (int32_t) found_communities.size(); f++) {
-			PP(f);
+			PP2(f, ELAPSED);
 			const int32_t new_cand = new_percolation_level.top_empty_component();
 			const clustering :: member_list_type & members_of_this_found_community = current_percolation_level.get_members(found_communities.at(f));
 			int32_t number_of_big_enough_cliques = 0;
