@@ -20,8 +20,7 @@ using namespace std;
 
 typedef vector<int32_t> clique; // the nodes will be in increasing numerical order
 
-static void do_clique_percolation_variant_5(vector<clustering :: components> &all_percolation_levels, const int32_t min_k, const vector< clique > &the_cliques) ;
-static void do_clique_percolation_variant_6(vector<clustering :: components> &all_percolation_levels, const int32_t min_k, const vector< clique > &the_cliques) ;
+static void do_clique_percolation_variant_5b(vector<clustering :: components> &all_percolation_levels, const int32_t min_k, const vector< clique > &the_cliques) ;
 
 template<typename T>
 string thou(T number);
@@ -88,10 +87,7 @@ int main(int argc, char **argv) {
 
 	// finally, call the clique_percolation algorithm proper
 
-	if(0)
-		do_clique_percolation_variant_5(all_percolation_levels, min_k, the_cliques);
-	else
-		do_clique_percolation_variant_6(all_percolation_levels, min_k, the_cliques);
+	do_clique_percolation_variant_5b(all_percolation_levels, min_k, the_cliques);
 }
 
 class bloom { // http://en.wikipedia.org/wiki/Bloom_filter
@@ -159,37 +155,6 @@ public:
 };
 
 static int32_t actual_overlap(const clique &old_clique, const clique &new_clique) ;
-static void search_for_candidate_matches(const intersecting_clique_finder &bl, const vector<clique> &the_cliques, const int32_t new_clique_id, const int32_t power_up, const int32_t branch_identifier, int64_t &count_searches, int64_t &count_successes, const int32_t min_k) ;
-
-
-static void search_for_candidate_matches(const intersecting_clique_finder &isf, const vector<clique> &the_cliques, const int32_t new_clique_id, const int32_t power_up, const int32_t branch_identifier, int64_t &count_searches, int64_t &count_successes, const int32_t min_k) {
-	// before we all this new clique, let's see which existing cliques it matches with
-	// we branch from the top down this time
-	const clique &new_clique = the_cliques.at(new_clique_id);
-	int32_t potential_overlap = 0;
-	if(branch_identifier != 1) { // we won't bother checking the root
-		++ count_searches;
-		potential_overlap = isf.overlap_estimate(new_clique, branch_identifier);
-		if(potential_overlap < min_k-1)
-			return;
-	}
-	if(branch_identifier >= power_up) {
-		// branch_identifier - power_up is a candidate clique
-		const int32_t cand_clique_id = branch_identifier - power_up; // the clique we think has sufficient nodes
-		if(cand_clique_id < new_clique_id) {
-			const int32_t actual = actual_overlap(the_cliques.at(cand_clique_id), new_clique);
-			// cout << ELAPSED << '\t';
-			// PP4( cand_clique_id, new_clique_id, potential_overlap, actual);
-			assert(actual <= potential_overlap); // Princeton is the first file I found that catches this. Good to see it happens so rarely
-			if(actual == potential_overlap) {
-				++ count_successes;
-			}
-		}
-	} else {
-		search_for_candidate_matches(isf, the_cliques, new_clique_id, power_up, 2*branch_identifier   ,count_searches,count_successes, min_k);
-		search_for_candidate_matches(isf, the_cliques, new_clique_id, power_up, 2*branch_identifier+1 ,count_searches,count_successes, min_k);
-	}
-}
 
 static void recursive_search(const intersecting_clique_finder &search_tree
 		, const int32_t branch_identifier
@@ -291,44 +256,6 @@ static void neighbours_of_one_clique(const vector<clique> &the_cliques
 
 struct too_many_cliques_exception : public std :: exception { };
 
-static void do_clique_percolation_variant_5(vector<clustering :: components> &all_percolation_levels, const int32_t min_k, const vector< clique > &the_cliques) {
-	if(the_cliques.size() > static_cast<size_t>(std :: numeric_limits<int32_t> :: max())) {
-		throw too_many_cliques_exception();
-	}
-	const int32_t C = the_cliques.size();
-	const int32_t max_k = all_percolation_levels.size()-1;
-	PP3(C, min_k, max_k);
-	assert(min_k <= max_k && C > 0);
-
-	int32_t power_up = 1; // this is to be the smallest power of 2 greater than, or equal to, the number of cliques
-	while(power_up < C)
-		power_up <<= 1;
-	assert(power_up > 0); // make sure it hasn't looped around and become negative!
-	PP2(C, power_up);
-
-	// go through each clique, from the 'earlier' to 'later' cliques.
-	// for each clique, find all the 'earlier' cliques with which it overlaps by at least min_k-1
-	// feed those results into the components
-	intersecting_clique_finder isf(power_up);
-	for(int c = 0; c < C; c++) {
-		// cout << endl;
-		int64_t searches_performed = 0;
-		int64_t search_successes = 0;
-		search_for_candidate_matches(isf, the_cliques, c, power_up, 1, searches_performed, search_successes, min_k);
-		if(c%1000==0) {
-			PP3(c, the_cliques.size(), double(clock())/CLOCKS_PER_SEC);
-			PP2(searches_performed, search_successes);
-			PP3(thou(isf.get_bloom_filter().l), thou(isf.get_bloom_filter().calls_to_set), thou(isf.get_bloom_filter().occupied));
-		}
-		isf.add_clique_to_bloom(the_cliques.at(c), c+power_up);
-		// PP(bl.occupied);
-	}
-
-	PPt(isf.get_bloom_filter().l);
-	PPt(isf.get_bloom_filter().calls_to_set);
-	PPt(isf.get_bloom_filter().occupied);
-}
-
 struct assigned_branches_t {
 	int32_t power_up;
 	int32_t number_of_cliques;
@@ -360,7 +287,7 @@ struct assigned_branches_t {
 	}
 };
 
-static void do_clique_percolation_variant_6(vector<clustering :: components> &all_percolation_levels, const int32_t min_k, const vector< clique > &the_cliques) {
+static void do_clique_percolation_variant_5b(vector<clustering :: components> &all_percolation_levels, const int32_t min_k, const vector< clique > &the_cliques) {
 	if(the_cliques.size() > static_cast<size_t>(std :: numeric_limits<int32_t> :: max())) {
 		throw too_many_cliques_exception();
 	}
@@ -407,9 +334,7 @@ static void do_clique_percolation_variant_6(vector<clustering :: components> &al
 		const int32_t component_to_grow_into = current_percolation_level.top_empty_component();
 		assert(0 == current_percolation_level.get_members(component_to_grow_into).size());
 
-		// PP(__LINE__);
 		current_percolation_level.move_node(seed_clique, component_to_grow_into);
-		// PP(__LINE__);
 
 		while(!frontier_cliques.empty()) {
 			const int32_t popped_clique = frontier_cliques.top();
@@ -430,9 +355,7 @@ static void do_clique_percolation_variant_6(vector<clustering :: components> &al
 			for(int x = 0; x < (int)fresh_frontier_cliques_found.size(); x++) {
 				const int32_t frontier_clique_to_be_moved_in = fresh_frontier_cliques_found.at(x);
 				frontier_cliques.push(frontier_clique_to_be_moved_in);
-				// PP(__LINE__);
 				current_percolation_level.move_node(frontier_clique_to_be_moved_in, component_to_grow_into);
-				// PP(__LINE__);
 			}
 			const int32_t new_size_of_growing_community = current_percolation_level.get_members(component_to_grow_into).size();
 			PP2(old_size_of_growing_community, new_size_of_growing_community);
@@ -442,19 +365,6 @@ static void do_clique_percolation_variant_6(vector<clustering :: components> &al
 		const int32_t final_size_of_growing_community = current_percolation_level.get_members(component_to_grow_into).size();
 		PP(final_size_of_growing_community);
 	}
-#if 0
-	cout << endl << ".. older code follows. Will delete if/when it's truly obsolete by the above while() loop" << endl;
-	for(int c = 0; c < 1; c++) {
-		const int32_t t = min_k-1; // at first, just for min_k-clique-percolation, we'll sort out the other levels later
-		// at first, just one clique
-		int32_t searches_performed = 0;
-		vector<int32_t> cliques_found;
-		const int32_t current_component_id = all_percolation_levels.at(min_k).my_component_id(c);
-		neighbours_of_one_clique(the_cliques, c, all_percolation_levels.at(min_k), t, current_component_id, isf, searches_performed, cliques_found);
-		int32_t search_successes = cliques_found.size();
-		PP3(c, searches_performed, search_successes);
-	}
-#endif
 }
 
 template<typename T>
