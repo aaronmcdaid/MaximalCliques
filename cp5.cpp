@@ -117,8 +117,8 @@ public:
 const int64_t bloom :: l = 10000000000;
 class intersecting_clique_finder { // based on a tree of all cliques, using a bloom filter to cut branch from the search tree
 	bloom bl;
-	const int32_t power_up; // the next power of two above the number of cliques
 public:
+	const int32_t power_up; // the next power of two above the number of cliques
 	intersecting_clique_finder(const int32_t p) : power_up(p) {
 	}
 	const bloom & get_bloom_filter(void) const { return this->bl; }
@@ -140,18 +140,6 @@ public:
 			}
 			branch_identifier >>= 1;
 		}
-	}
-	bool is_leaf_node(const int32_t branch_identifier) const {
-		if(branch_identifier >= this->power_up) {
-			return true;
-		} else {
-			return false;
-		}
-	}
-	int32_t to_leaf_id(const int32_t branch_identifier) const {
-		assert(branch_identifier >= this->power_up);
-		const int32_t leaf_id = branch_identifier - this->power_up;
-		return leaf_id;
 	}
 };
 struct too_many_cliques_exception : public std :: exception { };
@@ -189,6 +177,8 @@ struct assigned_branches_t {
 
 static int32_t actual_overlap(const clique &old_clique, const clique &new_clique) ;
 
+static int64_t calls_to_recursive_search = 0;
+
 static void recursive_search(const intersecting_clique_finder &search_tree
 		, const int32_t branch_identifier
 		, const int32_t current_clique_id
@@ -200,6 +190,8 @@ static void recursive_search(const intersecting_clique_finder &search_tree
 		, const int32_t component_to_skip
 		, assigned_branches_t &assigned_branches
 		) {
+	++ calls_to_recursive_search;
+	assert(calls_to_recursive_search > 0);
 	// PRECONDITION:
 	//    - we assume that the current branch in the tree already has enough nodes
 	//
@@ -216,8 +208,8 @@ static void recursive_search(const intersecting_clique_finder &search_tree
 	assert(assigned_branches.assigned_branches.at(branch_identifier) == false);
 
 	const clique &current_clique = the_cliques.at(current_clique_id);
-	if(search_tree.is_leaf_node(branch_identifier)) {
-		const int32_t leaf_clique_id = search_tree.to_leaf_id(branch_identifier);
+	if(branch_identifier >= search_tree.power_up) {
+		const int32_t leaf_clique_id = branch_identifier - search_tree.power_up;
 		assert(leaf_clique_id >= 0); // remember, this leaf mightn't really represent a clique (i.e. leaf_clique_id >= the_cliques.size()) 
 		if(size_t(leaf_clique_id) >= the_cliques.size()) {
 			// PP2(leaf_clique_id, the_cliques.size()); // TODO: get out of branches earlier
@@ -225,6 +217,8 @@ static void recursive_search(const intersecting_clique_finder &search_tree
 			const int32_t component_id_of_leaf = current_percolation_level.my_component_id(leaf_clique_id);
 			if(component_id_of_leaf == component_to_skip) {
 				// PP2(component_id_of_leaf, component_to_skip);
+				// PP2(current_clique_id, leaf_clique_id);
+				assert(component_id_of_leaf != component_to_skip);
 			} else {
 				// time to check if this clique really does have a big enough overlap
 
@@ -235,6 +229,7 @@ static void recursive_search(const intersecting_clique_finder &search_tree
 				if(actual >= t) {
 					assert(leaf_clique_id >= 0 && size_t(leaf_clique_id) < the_cliques.size());
 					cliques_found.push_back(leaf_clique_id);
+					assigned_branches.mark_as_done(branch_identifier); // this is *critical* for speed (if not accuracy). it stops it checking frontier<>frontier links. Really should consider a DFS now!
 				}
 			}
 		}
@@ -356,23 +351,20 @@ static void do_clique_percolation_variant_5b(vector<clustering :: components> &a
 			const int32_t current_component_id = current_percolation_level.my_component_id(popped_clique);
 			assert(current_component_id == component_to_grow_into);
 			neighbours_of_one_clique(the_cliques, popped_clique, current_percolation_level, t, component_to_grow_into, isf, searches_performed, fresh_frontier_cliques_found, assigned_branches);
-			int32_t search_successes = fresh_frontier_cliques_found.size();
-			PP3(popped_clique, searches_performed, search_successes);
-			PP2(frontier_cliques.size(), fresh_frontier_cliques_found.size());
-			const int32_t old_size_of_growing_community = current_percolation_level.get_members(component_to_grow_into).size();
+			// int32_t search_successes = fresh_frontier_cliques_found.size();
+			// const int32_t old_size_of_growing_community = current_percolation_level.get_members(component_to_grow_into).size();
 			for(int x = 0; x < (int)fresh_frontier_cliques_found.size(); x++) {
 				const int32_t frontier_clique_to_be_moved_in = fresh_frontier_cliques_found.at(x);
 				frontier_cliques.push(frontier_clique_to_be_moved_in);
 				assert(source_component == current_percolation_level.my_component_id(frontier_clique_to_be_moved_in));
 				current_percolation_level.move_node(frontier_clique_to_be_moved_in, component_to_grow_into);
 			}
-			const int32_t new_size_of_growing_community = current_percolation_level.get_members(component_to_grow_into).size();
-			PP2(old_size_of_growing_community, new_size_of_growing_community);
-			PP2(frontier_cliques.size(), the_cliques.size());
+			// const int32_t new_size_of_growing_community = current_percolation_level.get_members(component_to_grow_into).size();
 			assert(frontier_cliques.size() < the_cliques.size());
 		}
 		const int32_t final_size_of_growing_community = current_percolation_level.get_members(component_to_grow_into).size();
 		PP(final_size_of_growing_community);
+		// PP(calls_to_recursive_search);
 	}
 }
 
