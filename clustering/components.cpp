@@ -36,6 +36,16 @@ namespace clustering {
 		this->my_component.at(node_id) = new_component_id;
 		const std :: list<int32_t> :: iterator it = this->my_iterator.at(node_id);
 		assert( *it == node_id );
+
+		const int32_t old_size_of_new_community = this->members.at(new_component_id).size();
+		if(old_size_of_new_community == 0) {
+			// this *was* empty. We must remove it from the empty_components stack,
+			// therefore (precondition) we insist that it is currently on the top of that stack
+			assert(!this->empty_components.empty());
+			assert(new_component_id == this->empty_components.top());
+			this->empty_components.pop();
+		}
+
 		{
 			const int32_t old_size = this->members.at(old_component_id).size();
 			this->members.at(old_component_id).erase(it);
@@ -45,19 +55,12 @@ namespace clustering {
 				this->empty_components.push(old_component_id);
 		}
 		{
-			const int32_t old_size = this->members.at(new_component_id).size();
-			if(old_size == 0) {
-				// this *was* empty. We must remove it from the empty_components stack,
-				// therefore we insist that it is on the top of that stack
-				assert(!this->empty_components.empty() && new_component_id == this->empty_components.top());
-				this->empty_components.pop();
-			}
 			this->members.at(new_component_id).push_front(node_id);
 			const std :: list<int32_t> :: iterator it = this->members.at(new_component_id).begin();
 			assert( *it == node_id );
 			this->my_iterator.at(node_id) = it;
 			const int32_t new_size = this->members.at(new_component_id).size();
-			assert(new_size == old_size+1);
+			assert(new_size == old_size_of_new_community+1);
 		}
 	}
 	int32_t components :: top_empty_component() const {
