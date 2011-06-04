@@ -320,25 +320,23 @@ static void do_clique_percolation_variant_5b(vector<clustering :: components> &a
 	PPt(isf.get_bloom_filter().l);
 	PPt(isf.get_bloom_filter().calls_to_set);
 	PPt(isf.get_bloom_filter().occupied);
-	vector<bool> assigned_to_a_community(C, false);
 	assigned_branches_t assigned_branches(power_up, C); // the branches where all subleaves have already been assigned.  the recursive search should stop immediately upon reaching one of these
-	while(1) {
+	while(1) { // keep pulling out communities from component 0, the initial source-component
 		clustering :: components & current_percolation_level = all_percolation_levels.at(min_k);
 		const int32_t t = min_k-1; // at first, just for min_k-clique-percolation, we'll sort out the other levels later
 		// - find a clique that hasn't yet been assigned to a community
 		// - create a new community by:
 		//   - make it the first 'frontier' clique
 		//   - keep adding it, and all its neighbours, to the community until the frontier is empty
-		int32_t seed_clique = 0;
-		while(assigned_to_a_community.at(seed_clique) == true
-			|| the_cliques.at(seed_clique).size() < (size_t)min_k) {
-			++seed_clique;
-			if(seed_clique == C) {
-				cout << "all communities found. " << HOWLONG << endl;
-				return;
-			}
-		}
-		PP(seed_clique);
+
+		const int32_t source_component = 0;
+		if(current_percolation_level.get_members(source_component).empty())
+			break; // found all communities in this source component
+		assert(!current_percolation_level.get_members(source_component).empty());
+		const int32_t seed_clique = current_percolation_level.get_members(source_component).get().front();
+		assert(assigned_branches.assigned_branches.at(power_up + seed_clique) == false);
+		assert(the_cliques.at(seed_clique).size() >= (size_t)min_k);
+
 		stack< int32_t, vector<int32_t> > frontier_cliques;
 		frontier_cliques.push(seed_clique);
 		const int32_t component_to_grow_into = current_percolation_level.top_empty_component();
@@ -350,8 +348,6 @@ static void do_clique_percolation_variant_5b(vector<clustering :: components> &a
 			const int32_t popped_clique = frontier_cliques.top();
 			frontier_cliques.pop();
 
-			assert(assigned_to_a_community.at(popped_clique) == false);
-			assigned_to_a_community.at(popped_clique) = true;
 			assigned_branches.mark_as_done(power_up + popped_clique);
 
 			int32_t searches_performed = 0;
@@ -366,6 +362,7 @@ static void do_clique_percolation_variant_5b(vector<clustering :: components> &a
 			for(int x = 0; x < (int)fresh_frontier_cliques_found.size(); x++) {
 				const int32_t frontier_clique_to_be_moved_in = fresh_frontier_cliques_found.at(x);
 				frontier_cliques.push(frontier_clique_to_be_moved_in);
+				assert(source_component == current_percolation_level.my_component_id(frontier_clique_to_be_moved_in));
 				current_percolation_level.move_node(frontier_clique_to_be_moved_in, component_to_grow_into);
 			}
 			const int32_t new_size_of_growing_community = current_percolation_level.get_members(component_to_grow_into).size();
