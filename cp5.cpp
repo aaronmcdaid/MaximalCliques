@@ -152,7 +152,6 @@ struct assigned_branches_t {
 			int marked_this_time = this->mark_as_done(invalid_leaf);
 			total_premarked_as_invalid += marked_this_time;
 		}
-		PP(total_premarked_as_invalid);
 	}
 	int32_t mark_as_done(const int32_t branch_id) {
 		assert(branch_id >= 0 && size_t(branch_id) < this->assigned_branches.size());
@@ -341,7 +340,6 @@ static void do_clique_percolation_variant_5b(vector<clustering :: components> &a
 	vector<int32_t> found_communities;
 	for(int32_t k = min_k; k<=max_k; k++) {
 		clustering :: components & current_percolation_level = all_percolation_levels.at(k);
-		PP(k);
 		const int32_t t = k-1;
 		one_k(
 			found_communities
@@ -353,8 +351,6 @@ static void do_clique_percolation_variant_5b(vector<clustering :: components> &a
 			, C
 			, isf
 			);
-
-		PP2(t+1, found_communities.size());
 
 		const int32_t new_k = k + 1;
 		if(new_k > max_k)
@@ -376,9 +372,7 @@ static void do_clique_percolation_variant_5b(vector<clustering :: components> &a
 				}
 			}
 			if(new_cand == new_percolation_level.top_empty_component()) {
-				PP2("none of these were big enough", members_of_this_found_community.size());
 			} else {
-				PP2(number_of_big_enough_cliques, members_of_this_found_community.size());
 				candidate_components.push_back(new_cand);
 			}
 		}
@@ -407,7 +401,6 @@ static void one_k (vector<int32_t> & found_communities
 
 while (!candidate_components.empty()) {
 	const int32_t source_component = candidate_components.back();
-	PP(source_component);
 	candidate_components.pop_back();
 	while(!current_percolation_level.get_members(source_component).empty()) { // keep pulling out communities from current source-component
 		// - find a clique that hasn't yet been assigned to a community
@@ -423,7 +416,6 @@ while (!candidate_components.empty()) {
 		stack< int32_t, vector<int32_t> > frontier_cliques;
 		frontier_cliques.push(seed_clique);
 		const int32_t component_to_grow_into = current_percolation_level.top_empty_component();
-		PP(component_to_grow_into);
 		assert(0 == current_percolation_level.get_members(component_to_grow_into).size());
 
 		current_percolation_level.move_node(seed_clique, component_to_grow_into);
