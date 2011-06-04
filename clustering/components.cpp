@@ -38,7 +38,7 @@ namespace clustering {
 		return this -> my_component.at(n);
 	}
 	const misc :: list_with_constant_size <int32_t> & components :: get_members(int32_t component_id) const {
-		assert(component_id >= 0 && component_id < this->N);
+		assert(component_id >= 0 && component_id < this->num_components);
 		return this->members.at(component_id);
 	}
 	void components :: move_node(const int32_t node_id, const int32_t new_component_id) {
