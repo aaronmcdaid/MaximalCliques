@@ -55,9 +55,9 @@ int main(int argc, char **argv) {
 
         std :: auto_ptr<graph :: NetworkInterfaceConvertedToString > network;
 	if(args_info.stringIDs_flag) {
-		network	= graph :: loading :: make_Network_from_edge_list_string(edgeListFileName, 0, 0);
+		network	= graph :: loading :: make_Network_from_edge_list_string(edgeListFileName, false, false, true);
 	} else {
-		network	= graph :: loading :: make_Network_from_edge_list_int64(edgeListFileName, 0, 0);
+		network	= graph :: loading :: make_Network_from_edge_list_int64(edgeListFileName, false, false, true, 0);
 	}
 
 	int32_t maxDegree = graph :: stats :: get_max_degree(network->get_plain_graph());
