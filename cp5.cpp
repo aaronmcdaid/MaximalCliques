@@ -15,13 +15,19 @@
 #include <cassert>
 #include <limits>
 #include <iostream>
+#include <sys/stat.h> // for mkdir
+#include <sys/types.h> // for mkdir
+#include <fstream>
+#include <sstream>
+#include <cerrno>
+#include <tr1/unordered_set>
 
 
 using namespace std;
 
 typedef vector<int32_t> clique; // the nodes will be in increasing numerical order
 
-static void do_clique_percolation_variant_5b(vector<clustering :: components> &all_percolation_levels, const int32_t min_k, const vector< clique > &the_cliques) ;
+static void do_clique_percolation_variant_5b(vector<clustering :: components> &all_percolation_levels, const int32_t min_k, const vector< clique > &the_cliques, const char * output_dir_name, const graph :: NetworkInterfaceConvertedToString *network) ;
 
 template<typename T>
 string thou(T number);
@@ -37,12 +43,14 @@ int main(int argc, char **argv) {
 	if (cmdline_parser (argc, argv, &args_info) != 0)
 		exit(1) ;
 	// .. and there should be exactly one non-option arg
-	if(args_info.inputs_num != 1 || args_info.k_arg < 3) {
+	if(args_info.inputs_num != 2 || args_info.k_arg < 3) {
 		cmdline_parser_print_help();
+		cerr << endl << " == Need two args: edge_list and output_dir ==" << endl;
 		exit(1);
 	}
 
 	const char * edgeListFileName   = args_info.inputs[0];
+	const char * output_dir_name   = args_info.inputs[1];
 	const int min_k = args_info.k_arg;
 
         std :: auto_ptr<graph :: NetworkInterfaceConvertedToString > network;
@@ -84,7 +92,7 @@ int main(int argc, char **argv) {
 
 	// finally, call the clique_percolation algorithm proper
 
-	do_clique_percolation_variant_5b(all_percolation_levels, min_k, the_cliques);
+	do_clique_percolation_variant_5b(all_percolation_levels, min_k, the_cliques, output_dir_name, network.get());
 }
 
 class bloom { // http://en.wikipedia.org/wiki/Bloom_filter
@@ -297,7 +305,9 @@ static void one_k (vector<int32_t> & found_communities
 		, const intersecting_clique_finder &isf
 	     );
 
-static void do_clique_percolation_variant_5b(vector<clustering :: components> &all_percolation_levels, const int32_t min_k, const vector< clique > &the_cliques) {
+static void do_clique_percolation_variant_5b(vector<clustering :: components> &all_percolation_levels, const int32_t min_k, const vector< clique > &the_cliques, const char * output_dir_name, const graph :: NetworkInterfaceConvertedToString *network) {
+	assert(network);
+	assert(output_dir_name);
 	if(the_cliques.size() > static_cast<size_t>(std :: numeric_limits<int32_t> :: max())) {
 		throw too_many_cliques_exception();
 	}
@@ -337,6 +347,13 @@ static void do_clique_percolation_variant_5b(vector<clustering :: components> &a
 	vector<int32_t> candidate_components;
 	candidate_components.push_back(first_candidate_community);
 
+	{
+		const int32_t ret = mkdir(output_dir_name, 0777);
+		if(ret != 0 && errno != EEXIST) {
+			cerr << endl << "Couldn't create directory \"" << output_dir_name << "\". Exiting." << endl;
+			exit(1);
+		}
+	}
 	vector<int32_t> found_communities;
 	for(int32_t k = min_k; k<=max_k; k++) {
 		clustering :: components & current_percolation_level = all_percolation_levels.at(k);
@@ -351,6 +368,41 @@ static void do_clique_percolation_variant_5b(vector<clustering :: components> &a
 			, C
 			, isf
 			);
+		/* The found communities are now in found_communities
+		 * Gotta write them out
+		 */
+		{
+			ostringstream output_file_name;
+			output_file_name << output_dir_name << "/" << "comm" << k;
+			ofstream write_nodes_here(output_file_name.str().c_str());
+			for(int32_t f = 0; f < (int32_t) found_communities.size(); f++) { // communities
+				tr1 :: unordered_set<int32_t> node_ids_in_this_community;
+				const clustering :: member_list_type & members_of_this_found_community = current_percolation_level.get_members(found_communities.at(f));
+				for( clustering :: member_list_type :: const_iterator i = members_of_this_found_community.get().begin()
+					; i != members_of_this_found_community.get().end()
+					; i++) { // cliques
+					const int32_t clique_id = *i;
+					const clique & one_clique = the_cliques.at(clique_id);
+					for(int i = 0; size_t(i)<one_clique.size(); i++) {
+						node_ids_in_this_community.insert(one_clique.at(i));
+					}
+				} // cliques in the comm
+				bool first_node_on_this_line = true;
+				for(std :: tr1 :: unordered_set<int32_t> :: const_iterator it = node_ids_in_this_community.begin()
+						; it != node_ids_in_this_community.end()
+						; ++it ) {
+					const int32_t node_id = *it;
+					const std :: string node_name = network->node_name_as_string(node_id);
+					if(!first_node_on_this_line)
+						write_nodes_here << ' ';
+					write_nodes_here << node_name;
+					first_node_on_this_line = false;
+				} // writing nodes
+				write_nodes_here << endl;
+			} // communities
+			write_nodes_here.close();
+		}
+
 
 		const int32_t new_k = k + 1;
 		if(new_k > max_k)
