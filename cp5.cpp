@@ -80,10 +80,6 @@ int main(int argc, char **argv) {
 	for(int32_t i = min_k; i <= max_clique_size; i++) {
 		clustering :: components &one_percolation_level = all_percolation_levels.at(i);
 		one_percolation_level.setN(C);
-		for(int c=1; c<C; c++) {
-			one_percolation_level.move_node(c,0); // move 'node' c (i.e. the c-th clique) into component 0
-			// all the nodes (cliques) are in one big community for now.
-		}
 	}
 
 	// finally, call the clique_percolation algorithm proper
@@ -166,7 +162,6 @@ struct assigned_branches_t {
 			++ marked_this_time;
 			if(branch_id > 1) { // all branches, but the root, will have a partner
 			                    // .. if the partner is marked, then move up
-				// PP2(branch_id, branch_id ^ 1);
 				if(this->assigned_branches.at(branch_id ^ 1) == true) {
 					marked_this_time += this->mark_as_done(branch_id >> 1);
 				}
@@ -299,9 +294,12 @@ static void do_clique_percolation_variant_5b(vector<clustering :: components> &a
 		throw too_many_cliques_exception();
 	}
 	const int32_t C = the_cliques.size();
+	if(C==1) { // nothing to be done, just one clique. Leave it on its own.
+		return;
+	}
 	const int32_t max_k = all_percolation_levels.size()-1;
 	PP3(C, min_k, max_k);
-	assert(min_k > 0 && min_k <= max_k && C > 0);
+	assert(min_k > 0 && min_k <= max_k && C > 1);
 
 	int32_t power_up = 1; // this is to be the smallest power of 2 greater than, or equal to, the number of cliques
 	while(power_up < C)
@@ -318,15 +316,21 @@ static void do_clique_percolation_variant_5b(vector<clustering :: components> &a
 	PPt(isf.get_bloom_filter().calls_to_set);
 	PPt(isf.get_bloom_filter().occupied);
 	assigned_branches_t assigned_branches(power_up, C); // the branches where all subleaves have already been assigned.  the recursive search should stop immediately upon reaching one of these
+
+	clustering :: components & current_percolation_level = all_percolation_levels.at(min_k);
+	for(int c=1; c<C; c++) {
+		current_percolation_level.move_node(c,0); // move 'node' c (i.e. the c-th clique) into component 0
+		// all the nodes (cliques) are in one big community for now.
+	}
+	const int32_t source_component = 0;
+	const int32_t t = min_k-1; // at first, just for min_k-clique-percolation, we'll sort out the other levels later
+
 	while(1) { // keep pulling out communities from component 0, the initial source-component
-		clustering :: components & current_percolation_level = all_percolation_levels.at(min_k);
-		const int32_t t = min_k-1; // at first, just for min_k-clique-percolation, we'll sort out the other levels later
 		// - find a clique that hasn't yet been assigned to a community
 		// - create a new community by:
 		//   - make it the first 'frontier' clique
 		//   - keep adding it, and all its neighbours, to the community until the frontier is empty
 
-		const int32_t source_component = 0;
 		if(current_percolation_level.get_members(source_component).empty())
 			break; // found all communities in this source component
 		assert(!current_percolation_level.get_members(source_component).empty());
