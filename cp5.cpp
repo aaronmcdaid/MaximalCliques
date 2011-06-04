@@ -98,7 +98,7 @@ int main(int argc, char **argv) {
 class bloom { // http://en.wikipedia.org/wiki/Bloom_filter
 	vector<bool> data;
 public: // make private
-	static const int64_t l; // = 10000000000;
+	static const int64_t l;
 	int64_t occupied;
 	int64_t calls_to_set;
 	std :: tr1 :: hash<int64_t> h;
@@ -119,7 +119,7 @@ public:
 		}
 	}
 };
-const int64_t bloom :: l = 100000000000;
+const int64_t bloom :: l = 10000000000;
 class intersecting_clique_finder { // based on a tree of all cliques, using a bloom filter to cut branch from the search tree
 	bloom bl;
 public:
@@ -325,15 +325,6 @@ static void do_clique_percolation_variant_5b(vector<clustering :: components> &a
 	assert(power_up > 0); // make sure it hasn't looped around and become negative!
 	PP2(C, power_up);
 
-	intersecting_clique_finder isf(power_up);
-	for(int c = 0; c < C; c++) {
-		isf.add_clique_to_bloom(the_cliques.at(c), c+power_up);
-	}
-	cout << "isf populated. " << HOWLONG << endl;
-	PPt(isf.get_bloom_filter().l);
-	PPt(isf.get_bloom_filter().calls_to_set);
-	PPt(isf.get_bloom_filter().occupied);
-
 	/*
 	 * The above is generic to all k
 	 * The rest is specific for each k
@@ -356,9 +347,20 @@ static void do_clique_percolation_variant_5b(vector<clustering :: components> &a
 	}
 	vector<int32_t> found_communities;
 	for(int32_t k = min_k; k<=max_k; k++) {
-		PP(k);
+		PP2(k, ELAPSED);
 		clustering :: components & current_percolation_level = all_percolation_levels.at(k);
 		const int32_t t = k-1;
+
+		intersecting_clique_finder isf(power_up);
+		for(int c = 0; c < C; c++) {
+			if(the_cliques.at(c).size() >= size_t(t))
+				isf.add_clique_to_bloom(the_cliques.at(c), c+power_up);
+		}
+		cout << "isf populated for k = " << k << ". " << HOWLONG << endl;
+		PPt(isf.get_bloom_filter().l);
+		PPt(isf.get_bloom_filter().calls_to_set);
+		PPt(isf.get_bloom_filter().occupied);
+
 		one_k(
 			found_communities
 			, candidate_components
@@ -455,6 +457,14 @@ static void one_k (vector<int32_t> & found_communities
 	assert(found_communities.empty());
 
 	assigned_branches_t assigned_branches(power_up, C); // the branches where all subleaves have already been assigned.  the recursive search should stop immediately upon reaching one of these
+	{ // all the cliques that are too small should be premarked as assigned
+		for(int c=0; c<C; c++) {
+			const int32_t clique_size = the_cliques.at(c).size();
+			if(clique_size <= t) {
+				assigned_branches.mark_as_done(power_up + c);
+			}
+		}
+	}
 
 
 while (!candidate_components.empty()) {
