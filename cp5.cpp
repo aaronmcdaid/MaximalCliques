@@ -375,6 +375,19 @@ static void do_clique_percolation_variant_5b(vector<clustering :: components> &a
 			new_candidates.push_back(new_cand);
 		}
 	}
+
+	found_communities.clear();
+	one_k(
+		found_communities
+		, new_candidates
+		, current_percolation_level
+		, t+1
+		, the_cliques
+		, power_up
+		, C
+		, isf
+		);
+	PP2(t+2, found_communities.size());
 }
 
 static void one_k (vector<int32_t> & found_communities
