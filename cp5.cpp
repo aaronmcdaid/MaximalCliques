@@ -329,6 +329,37 @@ static void do_clique_percolation_variant_5(vector<clustering :: components> &al
 	PPt(isf.get_bloom_filter().occupied);
 }
 
+struct assigned_branches_t {
+	int32_t power_up;
+	int32_t number_of_cliques;
+	vector<bool> assigned_branches; // the branches where all subleaves have already been assigned. // the recursive search should stop immediately
+	assigned_branches_t(int32_t p, int32_t C) : power_up(p), number_of_cliques(C) {
+		assigned_branches.resize(2*power_up, false);
+		int total_premarked_as_invalid = 0;
+		for(int invalid_leaf = power_up + C; invalid_leaf < 2 * power_up; invalid_leaf++ ) {
+			int marked_this_time = this->mark_as_done(invalid_leaf);
+			total_premarked_as_invalid += marked_this_time;
+		}
+		PP(total_premarked_as_invalid);
+	}
+	int32_t mark_as_done(const int32_t branch_id) {
+		assert(branch_id >= 0 && size_t(branch_id) < this->assigned_branches.size());
+		int32_t marked_this_time = 0;
+		if(this->assigned_branches.at(branch_id) == false) {
+			this->assigned_branches.at(branch_id) = true;
+			++ marked_this_time;
+			if(branch_id > 1) { // all branches, but the root, will have a partner
+			                    // .. if the partner is marked, then move up
+				// PP2(branch_id, branch_id ^ 1);
+				if(this->assigned_branches.at(branch_id ^ 1) == true) {
+					marked_this_time += this->mark_as_done(branch_id >> 1);
+				}
+			}
+		}
+		return marked_this_time;
+	}
+};
+
 static void do_clique_percolation_variant_6(vector<clustering :: components> &all_percolation_levels, const int32_t min_k, const vector< clique > &the_cliques) {
 	if(the_cliques.size() > static_cast<size_t>(std :: numeric_limits<int32_t> :: max())) {
 		throw too_many_cliques_exception();
@@ -353,7 +384,7 @@ static void do_clique_percolation_variant_6(vector<clustering :: components> &al
 	PPt(isf.get_bloom_filter().calls_to_set);
 	PPt(isf.get_bloom_filter().occupied);
 	vector<bool> assigned_to_a_community(C, false);
-	// vector<bool> assigned_branches; // the branches where all subleaves have already been assigned. // the recursive search should stop immediately
+	assigned_branches_t assigned_branches(power_up, C); // the branches where all subleaves have already been assigned. // the recursive search should stop immediately
 	while(1) {
 		clustering :: components & current_percolation_level = all_percolation_levels.at(min_k);
 		const int32_t t = min_k-1; // at first, just for min_k-clique-percolation, we'll sort out the other levels later
