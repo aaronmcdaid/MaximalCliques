@@ -288,6 +288,15 @@ static void neighbours_of_one_clique(const vector<clique> &the_cliques
 				);
 }
 
+static void one_k (vector<int32_t> & found_communities
+		, vector<int32_t> candidate_components __attribute__((unused))
+		, clustering :: components &current_percolation_level
+		, const int32_t t
+		, const vector<clique> &the_cliques
+		, const int32_t power_up
+		, const int32_t C
+		, const intersecting_clique_finder &isf
+	     );
 
 static void do_clique_percolation_variant_5b(vector<clustering :: components> &all_percolation_levels, const int32_t min_k, const vector< clique > &the_cliques) {
 	if(the_cliques.size() > static_cast<size_t>(std :: numeric_limits<int32_t> :: max())) {
@@ -315,15 +324,50 @@ static void do_clique_percolation_variant_5b(vector<clustering :: components> &a
 	PPt(isf.get_bloom_filter().l);
 	PPt(isf.get_bloom_filter().calls_to_set);
 	PPt(isf.get_bloom_filter().occupied);
-	assigned_branches_t assigned_branches(power_up, C); // the branches where all subleaves have already been assigned.  the recursive search should stop immediately upon reaching one of these
 
-	clustering :: components & current_percolation_level = all_percolation_levels.at(min_k);
+	/*
+	 * The above is generic to all k
+	 * The rest is specific for each k
+	 */
+	clustering :: components & lowest_percolation_level = all_percolation_levels.at(min_k);
 	for(int c=1; c<C; c++) {
-		current_percolation_level.move_node(c,0); // move 'node' c (i.e. the c-th clique) into component 0
+		lowest_percolation_level.move_node(c,0); // move 'node' c (i.e. the c-th clique) into component 0
 		// all the nodes (cliques) are in one big community for now.
 	}
-	const int32_t source_component = 0;
+	vector<int32_t> found_communities;
+	vector<int32_t> candidate_components;
+	candidate_components.push_back(0);
 	const int32_t t = min_k-1; // at first, just for min_k-clique-percolation, we'll sort out the other levels later
+	one_k(
+		found_communities
+		, candidate_components
+		, lowest_percolation_level
+		, t
+		, the_cliques
+		, power_up
+		, C
+		, isf
+		);
+}
+
+static void one_k (vector<int32_t> & found_communities
+		, vector<int32_t> candidate_components __attribute__((unused))
+		, clustering :: components &current_percolation_level
+		, const int32_t t
+		, const vector<clique> &the_cliques
+		, const int32_t power_up
+		, const int32_t C
+		, const intersecting_clique_finder &isf
+	     ) {
+	/* We need a function that,
+	 *  - given a list of source components, where the small cliques have been kept out
+	 *  - does clique percolation on that, returning the component_ids of the found communities
+	 */
+	assert(found_communities.empty());
+
+	assigned_branches_t assigned_branches(power_up, C); // the branches where all subleaves have already been assigned.  the recursive search should stop immediately upon reaching one of these
+
+	const int32_t source_component = 0;
 
 	while(1) { // keep pulling out communities from component 0, the initial source-component
 		// - find a clique that hasn't yet been assigned to a community
@@ -336,7 +380,7 @@ static void do_clique_percolation_variant_5b(vector<clustering :: components> &a
 		assert(!current_percolation_level.get_members(source_component).empty());
 		const int32_t seed_clique = current_percolation_level.get_members(source_component).get().front();
 		assert(assigned_branches.assigned_branches.at(power_up + seed_clique) == false);
-		assert(the_cliques.at(seed_clique).size() >= (size_t)min_k);
+		assert(the_cliques.at(seed_clique).size() > size_t(t));
 
 		stack< int32_t, vector<int32_t> > frontier_cliques;
 		frontier_cliques.push(seed_clique);
@@ -389,3 +433,4 @@ static int32_t actual_overlap(const clique &old_clique, const clique &new_clique
 			 , back_inserter(intersection));
 	return intersection.size();
 }
+
