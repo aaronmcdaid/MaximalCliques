@@ -119,7 +119,7 @@ public:
 		}
 	}
 };
-const int64_t bloom :: l = 10000000000;
+const int64_t bloom :: l = 100000000000;
 class intersecting_clique_finder { // based on a tree of all cliques, using a bloom filter to cut branch from the search tree
 	bloom bl;
 public:
@@ -356,6 +356,7 @@ static void do_clique_percolation_variant_5b(vector<clustering :: components> &a
 	}
 	vector<int32_t> found_communities;
 	for(int32_t k = min_k; k<=max_k; k++) {
+		PP(k);
 		clustering :: components & current_percolation_level = all_percolation_levels.at(k);
 		const int32_t t = k-1;
 		one_k(
@@ -368,6 +369,7 @@ static void do_clique_percolation_variant_5b(vector<clustering :: components> &a
 			, C
 			, isf
 			);
+		cout << HOWLONG << endl;
 		/* The found communities are now in found_communities
 		 * Gotta write them out
 		 */
@@ -402,15 +404,18 @@ static void do_clique_percolation_variant_5b(vector<clustering :: components> &a
 			} // communities
 			write_nodes_here.close();
 		}
-
+		cout << HOWLONG << endl;
 
 		const int32_t new_k = k + 1;
+		PP(new_k);
 		if(new_k > max_k)
 			break;
 		clustering :: components & new_percolation_level = all_percolation_levels.at(new_k);
 
 		candidate_components.clear();
+		PP(__LINE__);
 		for(int32_t f = 0; f < (int32_t) found_communities.size(); f++) {
+			PP(f);
 			const int32_t new_cand = new_percolation_level.top_empty_component();
 			const clustering :: member_list_type & members_of_this_found_community = current_percolation_level.get_members(found_communities.at(f));
 			int32_t number_of_big_enough_cliques = 0;
@@ -428,6 +433,7 @@ static void do_clique_percolation_variant_5b(vector<clustering :: components> &a
 				candidate_components.push_back(new_cand);
 			}
 		}
+		PP(__LINE__);
 
 		found_communities.clear();
 	}
@@ -453,6 +459,8 @@ static void one_k (vector<int32_t> & found_communities
 
 while (!candidate_components.empty()) {
 	const int32_t source_component = candidate_components.back();
+	PP2(t+1, source_component);
+	cout << HOWLONG << endl;
 	candidate_components.pop_back();
 	while(!current_percolation_level.get_members(source_component).empty()) { // keep pulling out communities from current source-component
 		// - find a clique that hasn't yet been assigned to a community
@@ -462,6 +470,7 @@ while (!candidate_components.empty()) {
 
 		assert(!current_percolation_level.get_members(source_component).empty());
 		const int32_t seed_clique = current_percolation_level.get_members(source_component).get().front();
+		PP(seed_clique);
 		assert(assigned_branches.assigned_branches.at(power_up + seed_clique) == false);
 		assert(the_cliques.at(seed_clique).size() > size_t(t));
 
@@ -473,6 +482,7 @@ while (!candidate_components.empty()) {
 		current_percolation_level.move_node(seed_clique, component_to_grow_into);
 
 		while(!frontier_cliques.empty()) {
+			// PP(frontier_cliques.size());
 			const int32_t popped_clique = frontier_cliques.top();
 			frontier_cliques.pop();
 
