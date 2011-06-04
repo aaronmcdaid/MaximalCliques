@@ -93,7 +93,7 @@ int main(int argc, char **argv) {
 class bloom { // http://en.wikipedia.org/wiki/Bloom_filter
 	vector<bool> data;
 public: // make private
-	static const int64_t l = 10000000000;
+	static const int64_t l; // = 10000000000;
 	int64_t occupied;
 	int64_t calls_to_set;
 	std :: tr1 :: hash<int64_t> h;
@@ -114,6 +114,7 @@ public:
 		}
 	}
 };
+const int64_t bloom :: l = 10000000000;
 class intersecting_clique_finder { // based on a tree of all cliques, using a bloom filter to cut branch from the search tree
 	bloom bl;
 	const int32_t power_up; // the next power of two above the number of cliques
