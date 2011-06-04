@@ -351,6 +351,30 @@ static void do_clique_percolation_variant_5b(vector<clustering :: components> &a
 		, isf
 		);
 	PP2(t+1, found_communities.size());
+
+	const int32_t k = min_k + 1;
+	clustering :: components & current_percolation_level = all_percolation_levels.at(k);
+	vector<int32_t> new_candidates;
+	for(int32_t f = 0; f < (int32_t) found_communities.size(); f++) {
+		const int32_t new_cand = current_percolation_level.top_empty_component();
+		const clustering :: member_list_type & members_of_this_found_community = lowest_percolation_level.get_members(found_communities.at(f));
+		int32_t number_of_big_enough_cliques = 0;
+		for( clustering :: member_list_type :: const_iterator i = members_of_this_found_community.get().begin()
+			; i != members_of_this_found_community.get().end()
+			; i++) {
+			const int32_t clique_id = *i;
+			if(the_cliques.at(clique_id).size() >= size_t(k)) {
+				current_percolation_level.move_node(clique_id, new_cand);
+				++ number_of_big_enough_cliques;
+			}
+		}
+		if(new_cand == current_percolation_level.top_empty_component()) {
+			PP2("none of these were big enough", members_of_this_found_community.size());
+		} else {
+			PP2(number_of_big_enough_cliques, members_of_this_found_community.size());
+			new_candidates.push_back(new_cand);
+		}
+	}
 }
 
 static void one_k (vector<int32_t> & found_communities
