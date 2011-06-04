@@ -8,9 +8,11 @@ namespace clustering {
 		assert (this->N == 0); // setN should only be called *once*
 		assert (_N > 0);
 		this -> N = _N;
-		this -> members.resize(this->N);
-		this -> my_iterator.resize(this->N);
-		this -> my_component.resize(this->N);
+		const int32_t num_extra_empty_components_at_the_start = 10;
+		this -> num_components = this->N + num_extra_empty_components_at_the_start;
+		this -> members.resize(this->num_components);
+		this -> my_iterator.resize(this->num_components);
+		this -> my_component.resize(this->num_components);
 		for(int i=0; i<N; i++) {
 			this->my_component.at(i) = i; // every node in a component of its own
 			this->members.at(i).push_front(i);
@@ -18,6 +20,17 @@ namespace clustering {
 			list <int32_t> :: iterator it = this->members.at(i).begin();
 			assert(*it == i);
 			this->my_iterator.at(i) = it;
+		}
+		for(
+			int emp = num_extra_empty_components_at_the_start;
+			emp < N+num_extra_empty_components_at_the_start;
+			emp++) {
+			this->empty_components.push(emp);
+		}
+
+		// this next bit is not needed, but it's interested to mix things up at the start
+		for(int x = 0; x < num_extra_empty_components_at_the_start; x++) {
+			this->move_node(x, this->empty_components.top());
 		}
 	}
 	int32_t components :: my_component_id(const int32_t n) const {
@@ -29,7 +42,7 @@ namespace clustering {
 		return this->members.at(component_id);
 	}
 	void components :: move_node(const int32_t node_id, const int32_t new_component_id) {
-		assert(new_component_id >= 0 && new_component_id < this->N);
+		assert(new_component_id >= 0 && new_component_id < this->num_components);
 		const int32_t old_component_id = this->my_component_id(node_id);
 		assert(old_component_id != new_component_id);
 

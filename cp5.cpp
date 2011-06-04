@@ -330,12 +330,13 @@ static void do_clique_percolation_variant_5b(vector<clustering :: components> &a
 	 * The rest is specific for each k
 	 */
 	clustering :: components & lowest_percolation_level = all_percolation_levels.at(min_k);
-	for(int c=1; c<C; c++) {
-		lowest_percolation_level.move_node(c,0); // move 'node' c (i.e. the c-th clique) into component 0
+	const int32_t first_candidate_community = lowest_percolation_level.top_empty_component();
+	for(int c=0; c<C; c++) {
+		lowest_percolation_level.move_node(c,first_candidate_community); // move 'node' c (i.e. the c-th clique) into component 0
 		// all the nodes (cliques) are in one big community for now.
 	}
 	vector<int32_t> candidate_components;
-	candidate_components.push_back(0);
+	candidate_components.push_back(first_candidate_community);
 	const int32_t t = min_k-1; // at first, just for min_k-clique-percolation, we'll sort out the other levels later
 
 	vector<int32_t> found_communities;
@@ -372,6 +373,7 @@ static void one_k (vector<int32_t> & found_communities
 
 while (!candidate_components.empty()) {
 	const int32_t source_component = candidate_components.back();
+	PP(source_component);
 	candidate_components.pop_back();
 	while(!current_percolation_level.get_members(source_component).empty()) { // keep pulling out communities from current source-component
 		// - find a clique that hasn't yet been assigned to a community
@@ -387,6 +389,7 @@ while (!candidate_components.empty()) {
 		stack< int32_t, vector<int32_t> > frontier_cliques;
 		frontier_cliques.push(seed_clique);
 		const int32_t component_to_grow_into = current_percolation_level.top_empty_component();
+		PP(component_to_grow_into);
 		assert(0 == current_percolation_level.get_members(component_to_grow_into).size());
 
 		current_percolation_level.move_node(seed_clique, component_to_grow_into);

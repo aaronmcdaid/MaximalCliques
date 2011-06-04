@@ -12,6 +12,7 @@ namespace clustering {
 
 class components {
 	int32_t N;
+	int32_t num_components; // always a bit bigger than N
 	std :: vector< misc :: list_with_constant_size <int32_t> > members; // this will include a lot of empty lists
 	std :: vector< misc :: list_with_constant_size <int32_t> :: iterator > my_iterator; // for each node, the iterator to its position in all_members.
 	std :: vector< int32_t                           > my_component; // for each node, the id of the cluster it is in.
