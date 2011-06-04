@@ -334,10 +334,11 @@ static void do_clique_percolation_variant_5b(vector<clustering :: components> &a
 		lowest_percolation_level.move_node(c,0); // move 'node' c (i.e. the c-th clique) into component 0
 		// all the nodes (cliques) are in one big community for now.
 	}
-	vector<int32_t> found_communities;
 	vector<int32_t> candidate_components;
 	candidate_components.push_back(0);
 	const int32_t t = min_k-1; // at first, just for min_k-clique-percolation, we'll sort out the other levels later
+
+	vector<int32_t> found_communities;
 	one_k(
 		found_communities
 		, candidate_components
@@ -348,10 +349,11 @@ static void do_clique_percolation_variant_5b(vector<clustering :: components> &a
 		, C
 		, isf
 		);
+	PP2(t+1, found_communities.size());
 }
 
 static void one_k (vector<int32_t> & found_communities
-		, vector<int32_t> candidate_components __attribute__((unused))
+		, vector<int32_t> candidate_components
 		, clustering :: components &current_percolation_level
 		, const int32_t t
 		, const vector<clique> &the_cliques
@@ -367,16 +369,16 @@ static void one_k (vector<int32_t> & found_communities
 
 	assigned_branches_t assigned_branches(power_up, C); // the branches where all subleaves have already been assigned.  the recursive search should stop immediately upon reaching one of these
 
-	const int32_t source_component = 0;
 
-	while(1) { // keep pulling out communities from component 0, the initial source-component
+while (!candidate_components.empty()) {
+	const int32_t source_component = candidate_components.back();
+	candidate_components.pop_back();
+	while(!current_percolation_level.get_members(source_component).empty()) { // keep pulling out communities from current source-component
 		// - find a clique that hasn't yet been assigned to a community
 		// - create a new community by:
 		//   - make it the first 'frontier' clique
 		//   - keep adding it, and all its neighbours, to the community until the frontier is empty
 
-		if(current_percolation_level.get_members(source_component).empty())
-			break; // found all communities in this source component
 		assert(!current_percolation_level.get_members(source_component).empty());
 		const int32_t seed_clique = current_percolation_level.get_members(source_component).get().front();
 		assert(assigned_branches.assigned_branches.at(power_up + seed_clique) == false);
@@ -412,9 +414,11 @@ static void one_k (vector<int32_t> & found_communities
 			assert(frontier_cliques.size() < the_cliques.size());
 		}
 		const int32_t final_size_of_growing_community = current_percolation_level.get_members(component_to_grow_into).size();
-		PP(final_size_of_growing_community);
+		PP2(t+1, final_size_of_growing_community);
 		// PP(calls_to_recursive_search);
+		found_communities.push_back(component_to_grow_into);
 	}
+} // looping over the source components
 }
 
 template<typename T>
