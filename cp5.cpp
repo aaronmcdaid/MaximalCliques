@@ -348,51 +348,59 @@ static void do_clique_percolation_variant_5b(const int32_t min_k, const int32_t 
 		power_up <<= 1;
 	assert(power_up > 0); // make sure it hasn't looped around and become negative!
 	PP2(C, power_up);
+	create_directory_for_output(output_dir_name);
 
 	/*
 	 * The above is generic to all k
 	 * The rest is specific for each k
 	 */
 
-	/* Here's the loop:
+	/* Here's the main loop of the algorithm:
 	 *
 	 * - take list of source components as input for a new value of k
 	 * - for each source component 
 	 *   - do the comm-finding in it, appending the found communities to found_communities,
-	 *                                 and recording the detail in aa components structure.
+	 *                                 and recording the detail in a components structure.
 	 * - then prepare the next set of candidates, by copying the relevant components
 	 *               and cliques into the next value of k
+	 * - finally, update current_percolation_level and source_components ready for the next loop
 	 */
-	clustering :: components & lowest_percolation_level = all_percolation_levels.at(min_k);
-	const int32_t first_candidate_community = lowest_percolation_level.top_empty_component();
-	for(int c=0; c<C; c++) {
-		lowest_percolation_level.move_node(c,first_candidate_community); // move 'node' c (i.e. the c-th clique) into component 0
-		// all the nodes (cliques) are in one big community for now.
-	}
-	vector<int32_t> source_components;
-	source_components.push_back(first_candidate_community);
 
-	create_directory_for_output(output_dir_name);
+	// we seed the loop by setting up for k == min_k first
+	clustering :: components * current_percolation_level = NULL;
+	vector<int32_t> source_components;
+	{
+		current_percolation_level = &all_percolation_levels.at(min_k);
+		const int32_t first_candidate_community = current_percolation_level->top_empty_component();
+		for(int c=0; c<C; c++) {
+			current_percolation_level->move_node(c,first_candidate_community); // move 'node' c (i.e. the c-th clique) into component 0
+			// all the nodes (cliques) are in one big community for now.
+			}
+		source_components.push_back(first_candidate_community);
+	}
+
 	for(int32_t k = min_k; k<=max_k; k++) {
-		vector<int32_t> found_communities;
+		current_percolation_level = &all_percolation_levels.at(k);
+		vector<int32_t> found_communities; // the component_ids of the communities that will be found
 		PP2(k, ELAPSED);
-		clustering :: components & current_percolation_level = all_percolation_levels.at(k);
 		const int32_t t = k-1;
 
 		intersecting_clique_finder isf(power_up);
-		for(int c = 0; c < C; c++) {
-			if(the_cliques.at(c).size() >= size_t(t))
-				isf.add_clique_to_bloom(the_cliques.at(c), c+power_up);
+		{
+			for(int c = 0; c < C; c++) {
+				if(the_cliques.at(c).size() >= size_t(t))
+					isf.add_clique_to_bloom(the_cliques.at(c), c+power_up);
+			}
+			cout << "isf populated for k = " << k << ". " << HOWLONG << endl;
+			PPt(isf.get_bloom_filter().l);
+			PPt(isf.get_bloom_filter().calls_to_set);
+			PPt(isf.get_bloom_filter().occupied);
 		}
-		cout << "isf populated for k = " << k << ". " << HOWLONG << endl;
-		PPt(isf.get_bloom_filter().l);
-		PPt(isf.get_bloom_filter().calls_to_set);
-		PPt(isf.get_bloom_filter().occupied);
 
 		one_k(
 			found_communities
 			, source_components
-			, current_percolation_level
+			, *current_percolation_level
 			, t
 			, the_cliques
 			, power_up
@@ -403,7 +411,7 @@ static void do_clique_percolation_variant_5b(const int32_t min_k, const int32_t 
 		/* The found communities are now in found_communities
 		 * Gotta write them out
 		 */
-		write_all_communities_for_this_k(output_dir_name, k, found_communities, current_percolation_level, the_cliques, network);
+		write_all_communities_for_this_k(output_dir_name, k, found_communities, *current_percolation_level, the_cliques, network);
 		cout << HOWLONG << endl;
 
 		const int32_t new_k = k + 1;
@@ -417,7 +425,7 @@ static void do_clique_percolation_variant_5b(const int32_t min_k, const int32_t 
 		for(int32_t f = 0; f < (int32_t) found_communities.size(); f++) {
 			PP2(f, ELAPSED);
 			const int32_t new_cand = new_percolation_level.top_empty_component();
-			const clustering :: member_list_type & members_of_this_found_community = current_percolation_level.get_members(found_communities.at(f));
+			const clustering :: member_list_type & members_of_this_found_community = current_percolation_level->get_members(found_communities.at(f));
 			int32_t number_of_big_enough_cliques = 0;
 			for( clustering :: member_list_type :: const_iterator i = members_of_this_found_community.get().begin()
 				; i != members_of_this_found_community.get().end()
