@@ -94,7 +94,6 @@ static void write_all_communities_for_this_k(const char * output_dir_name
 		, const graph :: NetworkInterfaceConvertedToString *network
 		);
 static void create_directory_for_output(const char *dir);
-#if 0
 static void source_components_for_the_next_level (
 		vector<int32_t> &source_components
 		, comp * new_percolation_level
@@ -103,7 +102,6 @@ static void source_components_for_the_next_level (
 		, const comp * old_percolation_level
 		, const vector<clique> &the_cliques
 		) ; // identify candidates for the next level
-#endif
 
 template<typename T>
 string thou(T number);
@@ -494,7 +492,6 @@ static void do_clique_percolation_variant_5b(const int32_t min_k, const int32_t 
 		/* Now, to check which communities (and cliques therein) are
 		 * suitable for passing up to the next level
 		 */
-#if 0
 		comp * new_percolation_level = new comp(C);
 
 		source_components.clear();
@@ -510,8 +507,6 @@ static void do_clique_percolation_variant_5b(const int32_t min_k, const int32_t 
 		swap(new_percolation_level, current_percolation_level);
 		delete new_percolation_level; // this is actually deleting the old_level, because of the swap on the immediately preceding line.
 		new_percolation_level = NULL;
-#endif
-		break;
 	}
 }
 
@@ -564,7 +559,6 @@ while (!candidate_components.empty()) {
 		frontier_cliques.push(seed_clique);
 		const int32_t component_to_grow_into = current_percolation_level.create_empty_component();
 
-		PP(__LINE__);
 		current_percolation_level.move_node(seed_clique, component_to_grow_into, source_component);
 
 		while(!frontier_cliques.empty()) {
@@ -585,7 +579,6 @@ while (!candidate_components.empty()) {
 				const int32_t frontier_clique_to_be_moved_in = fresh_frontier_cliques_found.at(x);
 				frontier_cliques.push(frontier_clique_to_be_moved_in);
 				assert(source_component == current_percolation_level.my_component_id(frontier_clique_to_be_moved_in));
-				// PP(__LINE__);
 				current_percolation_level.move_node(frontier_clique_to_be_moved_in, component_to_grow_into, source_component);
 			}
 			// const int32_t new_size_of_growing_community = current_percolation_level.get_members(component_to_grow_into).size();
@@ -689,34 +682,23 @@ static void write_all_communities_for_this_k(const char * output_dir_name
 			write_nodes_here.close();
 }
 
-#if 0
-static void source_components_for_the_next_level (
+static void source_components_for_the_next_level ( // maybe this should return new_percolation_level ? via auto_ptr ?
 		vector<int32_t> &source_components
 		,       comp * new_percolation_level
 		, const int32_t new_k
-		, const vector<int32_t> &found_communities
-		, const comp * old_percolation_level
+		, const vector<int32_t> & // found_communities
+		, const comp * // old_percolation_level
 		, const vector<clique> &the_cliques
 		) { // identify candidates for the next level
 	assert(source_components.empty());
-		for(int32_t f = 0; f < (int32_t) found_communities.size(); f++) {
-			// PP2(f, ELAPSED);
-			const int32_t new_cand = new_percolation_level->create_empty_component();
-			const clustering :: member_list_type & members_of_this_found_community = old_percolation_level->get_members(found_communities.at(f));
-			int32_t number_of_big_enough_cliques = 0;
-			for( clustering :: member_list_type :: const_iterator i = members_of_this_found_community.get().begin()
-				; i != members_of_this_found_community.get().end()
-				; i++) {
-				const int32_t clique_id = *i;
-				if(the_cliques.at(clique_id).size() >= size_t(new_k)) {
-					new_percolation_level->move_node(clique_id, new_cand);
-					++ number_of_big_enough_cliques;
-				}
-			}
-			if(new_cand == new_percolation_level->top_empty_component()) {
-			} else {
-				source_components.push_back(new_cand);
-			}
+	const int32_t new_cand = new_percolation_level->create_empty_component();
+	int32_t number_of_cliques_found_that_are_suitably_big = 0;
+	for(int c=0; c<(int)the_cliques.size(); c++) {
+		if((int)the_cliques.at(c).size() >= new_k) {
+			new_percolation_level->move_node(c, new_cand, 0);
+			++ number_of_cliques_found_that_are_suitably_big;
 		}
+	}
+	if(number_of_cliques_found_that_are_suitably_big>0)
+		source_components.push_back(new_cand);
 }
-#endif
