@@ -21,7 +21,7 @@ class components {
 public:
 	components() : N(0) {}
 	void setN(const int32_t N);
-	void merge_components(const int32_t cl1, const int32_t cl2); // merge two non-empty components
+	// void merge_components(const int32_t cl1, const int32_t cl2); // merge two non-empty components
 	int32_t my_component_id(const int32_t n) const;
 	const member_list_type & get_members(int32_t component_id) const;
 	void move_node(const int32_t node_id, const int32_t new_component_id);
