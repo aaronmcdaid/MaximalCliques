@@ -28,6 +28,14 @@ using namespace std;
 typedef vector<int32_t> clique; // the nodes will be in increasing numerical order
 
 static void do_clique_percolation_variant_5b(vector<clustering :: components> &all_percolation_levels, const int32_t min_k, const vector< clique > &the_cliques, const char * output_dir_name, const graph :: NetworkInterfaceConvertedToString *network) ;
+static void write_all_communities_for_this_k(const char * output_dir_name
+		, const int32_t k
+		, const vector<int32_t> &found_communities
+		, const clustering :: components & current_percolation_level
+		, const vector<clique> &the_cliques
+		, const graph :: NetworkInterfaceConvertedToString *network
+		);
+static void create_directory_for_output(const char *dir);
 
 template<typename T>
 string thou(T number);
@@ -353,13 +361,7 @@ static void do_clique_percolation_variant_5b(vector<clustering :: components> &a
 	vector<int32_t> candidate_components;
 	candidate_components.push_back(first_candidate_community);
 
-	{
-		const int32_t ret = mkdir(output_dir_name, 0777);
-		if(ret != 0 && errno != EEXIST) {
-			cerr << endl << "Couldn't create directory \"" << output_dir_name << "\". Exiting." << endl;
-			exit(1);
-		}
-	}
+	create_directory_for_output(output_dir_name);
 	vector<int32_t> found_communities;
 	for(int32_t k = min_k; k<=max_k; k++) {
 		PP2(k, ELAPSED);
@@ -390,37 +392,7 @@ static void do_clique_percolation_variant_5b(vector<clustering :: components> &a
 		/* The found communities are now in found_communities
 		 * Gotta write them out
 		 */
-		{
-			ostringstream output_file_name;
-			output_file_name << output_dir_name << "/" << "comm" << k;
-			ofstream write_nodes_here(output_file_name.str().c_str());
-			for(int32_t f = 0; f < (int32_t) found_communities.size(); f++) { // communities
-				tr1 :: unordered_set<int32_t> node_ids_in_this_community;
-				const clustering :: member_list_type & members_of_this_found_community = current_percolation_level.get_members(found_communities.at(f));
-				for( clustering :: member_list_type :: const_iterator i = members_of_this_found_community.get().begin()
-					; i != members_of_this_found_community.get().end()
-					; i++) { // cliques
-					const int32_t clique_id = *i;
-					const clique & one_clique = the_cliques.at(clique_id);
-					for(int i = 0; size_t(i)<one_clique.size(); i++) {
-						node_ids_in_this_community.insert(one_clique.at(i));
-					}
-				} // cliques in the comm
-				bool first_node_on_this_line = true;
-				for(std :: tr1 :: unordered_set<int32_t> :: const_iterator it = node_ids_in_this_community.begin()
-						; it != node_ids_in_this_community.end()
-						; ++it ) {
-					const int32_t node_id = *it;
-					const std :: string node_name = network->node_name_as_string(node_id);
-					if(!first_node_on_this_line)
-						write_nodes_here << ' ';
-					write_nodes_here << node_name;
-					first_node_on_this_line = false;
-				} // writing nodes
-				write_nodes_here << endl;
-			} // communities
-			write_nodes_here.close();
-		}
+		write_all_communities_for_this_k(output_dir_name, k, found_communities, current_percolation_level, the_cliques, network);
 		cout << HOWLONG << endl;
 
 		const int32_t new_k = k + 1;
@@ -552,5 +524,54 @@ static int32_t actual_overlap(const clique &old_clique, const clique &new_clique
 	                 ,new_clique.begin(), new_clique.end()
 			 , back_inserter(intersection));
 	return intersection.size();
+}
+
+static void create_directory_for_output(const char *dir) {
+	assert(dir);
+	{
+		const int32_t ret = mkdir(dir, 0777);
+		if(ret != 0 && errno != EEXIST) {
+			cerr << endl << "Couldn't create directory \"" << dir << "\". Exiting." << endl;
+			exit(1);
+		}
+	}
+}
+static void write_all_communities_for_this_k(const char * output_dir_name
+		, const int32_t k
+		, const vector<int32_t> &found_communities
+		, const clustering :: components & current_percolation_level
+		, const vector<clique> &the_cliques
+		, const graph :: NetworkInterfaceConvertedToString *network
+		) {
+			assert(output_dir_name);
+			ostringstream output_file_name;
+			output_file_name << output_dir_name << "/" << "comm" << k;
+			ofstream write_nodes_here(output_file_name.str().c_str());
+			for(int32_t f = 0; f < (int32_t) found_communities.size(); f++) { // communities
+				tr1 :: unordered_set<int32_t> node_ids_in_this_community;
+				const clustering :: member_list_type & members_of_this_found_community = current_percolation_level.get_members(found_communities.at(f));
+				for( clustering :: member_list_type :: const_iterator i = members_of_this_found_community.get().begin()
+					; i != members_of_this_found_community.get().end()
+					; i++) { // cliques
+					const int32_t clique_id = *i;
+					const clique & one_clique = the_cliques.at(clique_id);
+					for(int i = 0; size_t(i)<one_clique.size(); i++) {
+						node_ids_in_this_community.insert(one_clique.at(i));
+					}
+				} // cliques in the comm
+				bool first_node_on_this_line = true;
+				for(std :: tr1 :: unordered_set<int32_t> :: const_iterator it = node_ids_in_this_community.begin()
+						; it != node_ids_in_this_community.end()
+						; ++it ) {
+					const int32_t node_id = *it;
+					const std :: string node_name = network->node_name_as_string(node_id);
+					if(!first_node_on_this_line)
+						write_nodes_here << ' ';
+					write_nodes_here << node_name;
+					first_node_on_this_line = false;
+				} // writing nodes
+				write_nodes_here << endl;
+			} // communities
+			write_nodes_here.close();
 }
 
