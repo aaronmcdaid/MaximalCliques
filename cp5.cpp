@@ -342,12 +342,6 @@ static void do_clique_percolation_variant_5b(const int32_t min_k, const int32_t 
 		return;
 	}
 
-	vector<clustering :: components> all_percolation_levels(max_k+1);
-	for(int32_t i = min_k; i <= max_k; i++) {
-		clustering :: components &one_percolation_level = all_percolation_levels.at(i);
-		one_percolation_level.setN(C);
-	}
-
 	PP3(C, min_k, max_k);
 	assert(min_k > 0 && min_k <= max_k && C > 1);
 
@@ -378,7 +372,8 @@ static void do_clique_percolation_variant_5b(const int32_t min_k, const int32_t 
 	clustering :: components * current_percolation_level = NULL;
 	vector<int32_t> source_components;
 	{
-		current_percolation_level = &all_percolation_levels.at(min_k);
+		current_percolation_level = new clustering :: components;
+		current_percolation_level->setN(C);
 		const int32_t first_candidate_community = current_percolation_level->top_empty_component();
 		for(int c=0; c<C; c++) {
 			current_percolation_level->move_node(c,first_candidate_community); // move 'node' c (i.e. the c-th clique) into component 0
@@ -387,8 +382,11 @@ static void do_clique_percolation_variant_5b(const int32_t min_k, const int32_t 
 		source_components.push_back(first_candidate_community);
 	}
 
-	for(int32_t k = min_k; k<=max_k; k++) {
-		current_percolation_level = &all_percolation_levels.at(k);
+	/* Going into each loop in this for-loop
+	 * - the input is essentially the source_components object, this will be updated at the end of each loop.
+	 * - the output will be going into current_percolation_level, which again will be different at each loop.
+	 */
+	for(int32_t k = min_k; k<=max_k /* we never actually reach this, see the `break` below*/; k++) {
 		vector<int32_t> found_communities; // the component_ids of the communities that will be found
 		PP2(k, ELAPSED);
 		const int32_t t = k-1;
@@ -423,13 +421,17 @@ static void do_clique_percolation_variant_5b(const int32_t min_k, const int32_t 
 
 		const int32_t new_k = k + 1;
 		PP(new_k);
-		if(new_k > max_k)
+		if(new_k > max_k) {
+			delete current_percolation_level;
+			current_percolation_level = NULL;
 			break;
+		}
 
 		/* Now, to check which communities (and cliques therein) are
 		 * suitable for passing up to the next level
 		 */
-		clustering :: components * new_percolation_level = &all_percolation_levels.at(new_k);
+		clustering :: components * new_percolation_level = new clustering :: components;
+		new_percolation_level->setN(C);
 
 		source_components.clear();
 		PP(__LINE__);
@@ -442,6 +444,10 @@ static void do_clique_percolation_variant_5b(const int32_t min_k, const int32_t 
 				, the_cliques
 				);
 		PP(__LINE__);
+
+		swap(new_percolation_level, current_percolation_level);
+		delete new_percolation_level; // this is actually deleting the old_level, because of the swap on the immediately preceding line.
+		new_percolation_level = NULL;
 	}
 }
 
