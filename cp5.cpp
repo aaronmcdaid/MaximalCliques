@@ -1,7 +1,6 @@
 #include "graph/network.hpp"
 #include "graph/loading.hpp"
 #include "graph/stats.hpp"
-#include "clustering/components.hpp"
 #include "macros.hpp"
 #include "cliques.hpp"
 #include "cmdline.h"
@@ -31,23 +30,80 @@ using namespace std;
 
 typedef vector<int32_t> clique; // the nodes will be in increasing numerical order
 
+
+typedef stack<int32_t, vector<int32_t> > int_stack;
+
+class comp { // which component, if any, is this node in?
+private:
+	const int32_t N;
+	vector<int32_t> com; // initialize with everything in cluster '0'
+	int32_t num_components;
+public:
+	comp(int32_t _N) : N(_N), com(N,0), num_components(1) { // one giant component at first
+	}
+	int32_t my_component_id(const int32_t node_id) const {
+		int32_t id = this->com.at(node_id);
+		assert(id >= 0);
+		return id;
+	}
+	int32_t create_empty_component() {
+		return this->num_components ++; // must be *post* increment
+	}
+	void move_node(int32_t node_id, int32_t to, int32_t from) {
+		assert(node_id >= 0);
+		assert(node_id < this->N);
+		assert(to >= 0);
+		// PP2(to , this->num_components);
+		assert(to < this->num_components);
+		assert(from != to);
+		assert(this->com.at(node_id) == from);
+		this->com.at(node_id) = to;
+	}
+	const vector<int32_t> & get_com() const {
+		return com;
+	}
+};
+class maybe_available { // a stack of node_ids that are available (i.e. in the source_component, but not yet assigned to a community
+private:
+	int_stack potentially_available;
+public:
+	void insert(int32_t c) {
+		this->potentially_available.push(c);
+	}
+	int32_t get_next(const comp &current_component, int32_t source_component) { // return -1 if none available
+		// pop items from the stack until one is identified which hasn't yet been assigned in the current_component
+		// if called repeatedly, it'll return the same value, at least until the relevant node (i.e. clique) is moved from source_component
+		while(1) {
+			if(this->potentially_available.empty())
+				return -1;
+			const int32_t node_id = this->potentially_available.top();
+			if(current_component.my_component_id(node_id) == source_component)
+				return node_id;
+			this->potentially_available.pop(); // this node is no longer available, let's discard it
+		}
+	}
+};
+
+
 static void do_clique_percolation_variant_5b(const int32_t min_k, const int32_t max_k, const vector< clique > &the_cliques, const char * output_dir_name, const graph :: NetworkInterfaceConvertedToString *network) ;
 static void write_all_communities_for_this_k(const char * output_dir_name
 		, const int32_t k
 		, const vector<int32_t> &found_communities
-		, const clustering :: components & current_percolation_level
+		, const comp & current_percolation_level
 		, const vector<clique> &the_cliques
 		, const graph :: NetworkInterfaceConvertedToString *network
 		);
 static void create_directory_for_output(const char *dir);
+#if 0
 static void source_components_for_the_next_level (
 		vector<int32_t> &source_components
-		,       clustering :: components * new_percolation_level
+		, comp * new_percolation_level
 		, const int32_t new_k
 		, const vector<int32_t> &found_communities
-		, const clustering :: components * old_percolation_level
+		, const comp * old_percolation_level
 		, const vector<clique> &the_cliques
 		) ; // identify candidates for the next level
+#endif
 
 template<typename T>
 string thou(T number);
@@ -68,22 +124,6 @@ static string memory_usage() {
 	}
 	return mem.str();
 }
-
-typedef stack<int32_t, vector<int32_t> > int_stack;
-
-class comp { // which component, if any, is this node in?
-private:
-	const int32_t N;
-	vector<int32_t> com; // initialize with -1, i.e. no cluster.
-public:
-	comp(int32_t _N) : N(_N), com(N,-1) {
-	}
-
-};
-class maybe_available { // a stack of node_ids that are available (i.e. in the source_component, but not yet assigned to a community
-private:
-	int_stack potentially_available;
-};
 
 int main(int argc, char **argv) {
 	gengetopt_args_info args_info;
@@ -240,7 +280,7 @@ static void recursive_search(const intersecting_clique_finder &search_tree
 		, const vector<clique> &the_cliques
 		, int32_t &searches_performed
 		, vector<int32_t> &cliques_found
-		, const clustering :: components & current_percolation_level
+		, const comp * current_percolation_level
 		, const int32_t component_already_in // i.e. the community we're merging into now
 		, const int32_t source_component_id // the component (i.e. k-1-level community we're pulling from. This is just needed for verification
 		, assigned_branches_t &assigned_branches
@@ -269,7 +309,7 @@ static void recursive_search(const intersecting_clique_finder &search_tree
 		if(size_t(leaf_clique_id) >= the_cliques.size()) { // I'm pretty sure this'll never happen, because the assigned_branches will already have marked these as invalid
 			// PP2(leaf_clique_id, the_cliques.size()); // TODO: get out of branches earlier
 		} else {
-			const int32_t component_id_of_leaf = current_percolation_level.my_component_id(leaf_clique_id);
+			const int32_t component_id_of_leaf = current_percolation_level->my_component_id(leaf_clique_id);
 			if(component_id_of_leaf == component_already_in) {
 				// We should never come in here either, as it's already in assigned_branches
 				assert(1 == 2);
@@ -310,7 +350,7 @@ static void recursive_search(const intersecting_clique_finder &search_tree
 
 static void neighbours_of_one_clique(const vector<clique> &the_cliques
 		, const int32_t current_clique_id
-		, const clustering :: components & components
+		, const comp & components
 		, const int32_t t
 		, const int32_t current_component_id
 		, const int32_t source_component_id
@@ -337,7 +377,7 @@ static void neighbours_of_one_clique(const vector<clique> &the_cliques
 				, the_cliques
 				, searches_performed
 				, cliques_found
-				, components
+				, &components
 				, current_component_id
 				, source_component_id
 				, assigned_branches
@@ -346,7 +386,8 @@ static void neighbours_of_one_clique(const vector<clique> &the_cliques
 
 static void one_k (vector<int32_t> & found_communities
 		, vector<int32_t> candidate_components
-		, clustering :: components &current_percolation_level
+		, vector<maybe_available> members_of_the_source_components
+		, comp &current_percolation_level
 		, const int32_t t
 		, const vector<clique> &the_cliques
 		, const int32_t power_up
@@ -393,18 +434,18 @@ static void do_clique_percolation_variant_5b(const int32_t min_k, const int32_t 
 	 */
 
 	// we seed the loop by setting up for k == min_k first
-	clustering :: components * current_percolation_level = NULL;
+	comp * current_percolation_level = NULL;
 	vector<int32_t> source_components;
+	vector<maybe_available> members_of_the_source_components; // the ids of the cliques in the source component
 	{
-		current_percolation_level = new clustering :: components;
-		current_percolation_level->setN(C);
-		const int32_t first_candidate_community = current_percolation_level->top_empty_component();
+		current_percolation_level = new comp(C);
+		source_components.push_back(0);
+		members_of_the_source_components.push_back( maybe_available() );
 		for(int c=0; c<C; c++) {
-			current_percolation_level->move_node(c,first_candidate_community); // move 'node' c (i.e. the c-th clique) into component 0
-			// all the nodes (cliques) are in one big community for now.
-			}
-		source_components.push_back(first_candidate_community);
+			members_of_the_source_components.at(0).insert(c);
+		}
 	}
+	assert(source_components.size() == members_of_the_source_components.size());
 
 	/* Going into each loop in this for-loop
 	 * - the input is essentially the source_components object, this will be updated at the end of each loop.
@@ -429,6 +470,7 @@ static void do_clique_percolation_variant_5b(const int32_t min_k, const int32_t 
 		one_k(
 			found_communities
 			, source_components
+			, members_of_the_source_components
 			, *current_percolation_level
 			, t
 			, the_cliques
@@ -452,8 +494,8 @@ static void do_clique_percolation_variant_5b(const int32_t min_k, const int32_t 
 		/* Now, to check which communities (and cliques therein) are
 		 * suitable for passing up to the next level
 		 */
-		clustering :: components * new_percolation_level = new clustering :: components;
-		new_percolation_level->setN(C);
+#if 0
+		comp * new_percolation_level = new comp(C);
 
 		source_components.clear();
 		source_components_for_the_next_level (
@@ -468,12 +510,15 @@ static void do_clique_percolation_variant_5b(const int32_t min_k, const int32_t 
 		swap(new_percolation_level, current_percolation_level);
 		delete new_percolation_level; // this is actually deleting the old_level, because of the swap on the immediately preceding line.
 		new_percolation_level = NULL;
+#endif
+		break;
 	}
 }
 
 static void one_k (vector<int32_t> & found_communities
 		, vector<int32_t> candidate_components
-		, clustering :: components &current_percolation_level
+		, vector<maybe_available> members_of_the_source_components
+		, comp &current_percolation_level
 		, const int32_t t
 		, const vector<clique> &the_cliques
 		, const int32_t power_up
@@ -498,28 +543,29 @@ static void one_k (vector<int32_t> & found_communities
 
 
 while (!candidate_components.empty()) {
+	assert(candidate_components.size() == members_of_the_source_components.size());
 	const int32_t source_component = candidate_components.back();
 	// PP2(t+1, source_component);
 	// cout << HOWLONG << endl;
 	candidate_components.pop_back();
-	while(!current_percolation_level.get_members(source_component).empty()) { // keep pulling out communities from current source-component
+	maybe_available & the_cliques_yet_to_be_assigned_in_this_source_component = members_of_the_source_components.back();
+	while( -1 != the_cliques_yet_to_be_assigned_in_this_source_component.get_next(current_percolation_level, source_component) ) { // keep pulling out communities from current source-component
 		// - find a clique that hasn't yet been assigned to a community
 		// - create a new community by:
 		//   - make it the first 'frontier' clique
 		//   - keep adding it, and all its neighbours, to the community until the frontier is empty
 
-		assert(!current_percolation_level.get_members(source_component).empty());
-		const int32_t seed_clique = current_percolation_level.get_members(source_component).get().front();
+		const int32_t seed_clique = the_cliques_yet_to_be_assigned_in_this_source_component.get_next(current_percolation_level, source_component);
 		// PP(seed_clique);
 		assert(assigned_branches.assigned_branches.at(power_up + seed_clique) == false);
 		assert(the_cliques.at(seed_clique).size() > size_t(t));
 
 		stack< int32_t, vector<int32_t> > frontier_cliques;
 		frontier_cliques.push(seed_clique);
-		const int32_t component_to_grow_into = current_percolation_level.top_empty_component();
-		assert(0 == current_percolation_level.get_members(component_to_grow_into).size());
+		const int32_t component_to_grow_into = current_percolation_level.create_empty_component();
 
-		current_percolation_level.move_node(seed_clique, component_to_grow_into);
+		PP(__LINE__);
+		current_percolation_level.move_node(seed_clique, component_to_grow_into, source_component);
 
 		while(!frontier_cliques.empty()) {
 			// PP(frontier_cliques.size());
@@ -539,7 +585,8 @@ while (!candidate_components.empty()) {
 				const int32_t frontier_clique_to_be_moved_in = fresh_frontier_cliques_found.at(x);
 				frontier_cliques.push(frontier_clique_to_be_moved_in);
 				assert(source_component == current_percolation_level.my_component_id(frontier_clique_to_be_moved_in));
-				current_percolation_level.move_node(frontier_clique_to_be_moved_in, component_to_grow_into);
+				// PP(__LINE__);
+				current_percolation_level.move_node(frontier_clique_to_be_moved_in, component_to_grow_into, source_component);
 			}
 			// const int32_t new_size_of_growing_community = current_percolation_level.get_members(component_to_grow_into).size();
 			assert(frontier_cliques.size() < the_cliques.size());
@@ -582,26 +629,50 @@ static void create_directory_for_output(const char *dir) {
 static void write_all_communities_for_this_k(const char * output_dir_name
 		, const int32_t k
 		, const vector<int32_t> &found_communities
-		, const clustering :: components & current_percolation_level
+		, const comp & current_percolation_level
 		, const vector<clique> &the_cliques
 		, const graph :: NetworkInterfaceConvertedToString *network
 		) {
+			const int32_t C = the_cliques.size();
+			map<int32_t, tr1 :: unordered_set<int32_t> > node_ids_in_each_community;
+			{
+				for(int32_t f = 0; f < (int32_t) found_communities.size(); f++) { // communities
+					const int32_t found_community_component_id = found_communities.at(f);
+					node_ids_in_each_community[found_community_component_id];
+				}
+				assert(found_communities.size() == node_ids_in_each_community.size());
+				const vector<int32_t> & com = current_percolation_level.get_com();
+				assert(com.size() == size_t(C));
+				for (int32_t c=0; c<C; c++) {
+					const int32_t comp_id_of_clique = com.at(c);
+					const clique & the_clique = the_cliques.at(c);
+					const int32_t size_of_clique = the_clique.size();
+					if(node_ids_in_each_community.count(comp_id_of_clique)) {
+						// this clique is in one of the found communities
+						assert(size_of_clique >= k);
+						tr1 :: unordered_set<int32_t> &node_ids_in_this_community
+							= node_ids_in_each_community.at(comp_id_of_clique);
+						for(int n=0; n<size_of_clique; n++) {
+							node_ids_in_this_community.insert(the_clique.at(n));
+						}
+					} else {
+						assert(size_of_clique < k);
+					}
+				}
+				assert(found_communities.size() == node_ids_in_each_community.size());
+			}
+
 			assert(output_dir_name);
 			ostringstream output_file_name;
 			output_file_name << output_dir_name << "/" << "comm" << k;
 			ofstream write_nodes_here(output_file_name.str().c_str());
-			for(int32_t f = 0; f < (int32_t) found_communities.size(); f++) { // communities
-				tr1 :: unordered_set<int32_t> node_ids_in_this_community;
-				const clustering :: member_list_type & members_of_this_found_community = current_percolation_level.get_members(found_communities.at(f));
-				for( clustering :: member_list_type :: const_iterator i = members_of_this_found_community.get().begin()
-					; i != members_of_this_found_community.get().end()
-					; i++) { // cliques
-					const int32_t clique_id = *i;
-					const clique & one_clique = the_cliques.at(clique_id);
-					for(int i = 0; size_t(i)<one_clique.size(); i++) {
-						node_ids_in_this_community.insert(one_clique.at(i));
-					}
-				} // cliques in the comm
+
+			for (
+	map<int32_t, tr1 :: unordered_set<int32_t> > :: const_iterator i = node_ids_in_each_community.begin();
+	i != node_ids_in_each_community.end();
+	++i
+				)  { // communities
+				const tr1 :: unordered_set<int32_t> &node_ids_in_this_community = i->second;
 				bool first_node_on_this_line = true;
 				for(std :: tr1 :: unordered_set<int32_t> :: const_iterator it = node_ids_in_this_community.begin()
 						; it != node_ids_in_this_community.end()
@@ -618,18 +689,19 @@ static void write_all_communities_for_this_k(const char * output_dir_name
 			write_nodes_here.close();
 }
 
+#if 0
 static void source_components_for_the_next_level (
 		vector<int32_t> &source_components
-		,       clustering :: components * new_percolation_level
+		,       comp * new_percolation_level
 		, const int32_t new_k
 		, const vector<int32_t> &found_communities
-		, const clustering :: components * old_percolation_level
+		, const comp * old_percolation_level
 		, const vector<clique> &the_cliques
 		) { // identify candidates for the next level
 	assert(source_components.empty());
 		for(int32_t f = 0; f < (int32_t) found_communities.size(); f++) {
 			// PP2(f, ELAPSED);
-			const int32_t new_cand = new_percolation_level->top_empty_component();
+			const int32_t new_cand = new_percolation_level->create_empty_component();
 			const clustering :: member_list_type & members_of_this_found_community = old_percolation_level->get_members(found_communities.at(f));
 			int32_t number_of_big_enough_cliques = 0;
 			for( clustering :: member_list_type :: const_iterator i = members_of_this_found_community.get().begin()
@@ -647,3 +719,4 @@ static void source_components_for_the_next_level (
 			}
 		}
 }
+#endif
