@@ -35,6 +35,19 @@ string thou(T number);
 #define ELAPSED (double(clock())/CLOCKS_PER_SEC)
 #define HOWLONG "(runtime: " << ELAPSED <<"s)"
 
+static string memory_usage() {
+	ostringstream mem;
+	PP("hi");
+	ifstream proc("/proc/self/status");
+	string s;
+	while(getline(proc, s), !proc.fail()) {
+		if(s.substr(0, 6) == "VmSize") {
+			mem << s;
+			return mem.str();
+		}
+	}
+	return mem.str();
+}
 
 int main(int argc, char **argv) {
 	gengetopt_args_info args_info;
@@ -59,6 +72,8 @@ int main(int argc, char **argv) {
 	} else {
 		network	= graph :: loading :: make_Network_from_edge_list_int64(edgeListFileName, false, false, true, 0);
 	}
+
+	PP(memory_usage());
 
 	int32_t maxDegree = graph :: stats :: get_max_degree(network->get_plain_graph());
 
