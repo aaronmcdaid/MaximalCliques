@@ -6,21 +6,24 @@
 #include "cliques.hpp"
 #include "cmdline.h"
 
-#include <getopt.h>
-#include <libgen.h>
-#include <ctime>
-#include <algorithm>
 #include <vector>
+#include <tr1/unordered_set>
+#include <map>
+
+#include <algorithm>
 #include <tr1/functional>
-#include <cassert>
-#include <limits>
 #include <iostream>
-#include <sys/stat.h> // for mkdir
-#include <sys/types.h> // for mkdir
 #include <fstream>
 #include <sstream>
+
+#include <getopt.h>
+#include <libgen.h>
+#include <cassert>
 #include <cerrno>
-#include <tr1/unordered_set>
+#include <ctime>
+#include <limits>
+#include <sys/stat.h> // for mkdir
+#include <sys/types.h> // for mkdir
 
 
 using namespace std;
@@ -81,6 +84,7 @@ int main(int argc, char **argv) {
 	const char * edgeListFileName   = args_info.inputs[0];
 	const char * output_dir_name   = args_info.inputs[1];
 	const int min_k = args_info.k_arg;
+	assert(min_k > 2);
 
         std :: auto_ptr<graph :: NetworkInterfaceConvertedToString > network;
 	if(args_info.stringIDs_flag) {
@@ -107,13 +111,18 @@ int main(int argc, char **argv) {
 		cerr << endl << "Error: you don't have any cliques of at least size " << min_k << ". Exiting." << endl;
 		exit(1);
 	}
-	int max_clique_size = 0; // to store the size of the biggest clique
+	std :: map<size_t, int32_t> cliqueFrequencies;
 	for(vector<clique > :: const_iterator i = the_cliques.begin(); i != the_cliques.end(); i++) {
-		if(max_clique_size < (int)i->size())
-			max_clique_size = i->size();
+		++cliqueFrequencies[i->size()];
 	}
+	assert(!cliqueFrequencies.empty());
+	int max_clique_size = cliqueFrequencies.rbegin()->first;
 	PP(max_clique_size);
 	assert(max_clique_size > 0);
+	assert(max_clique_size >= min_k);
+	for(int k = min_k; k<=max_clique_size; k++) {
+		cout << "# " << k << '\t' << cliqueFrequencies[k] << endl;
+	}
 
 	// finally, call the clique_percolation algorithm proper
 
