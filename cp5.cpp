@@ -36,6 +36,14 @@ static void write_all_communities_for_this_k(const char * output_dir_name
 		, const graph :: NetworkInterfaceConvertedToString *network
 		);
 static void create_directory_for_output(const char *dir);
+static void source_components_for_the_next_level (
+		vector<int32_t> &source_components
+		,       clustering :: components * new_percolation_level
+		, const int32_t new_k
+		, const vector<int32_t> &found_communities
+		, const clustering :: components * old_percolation_level
+		, const vector<clique> &the_cliques
+		) ; // identify candidates for the next level
 
 template<typename T>
 string thou(T number);
@@ -408,8 +416,7 @@ static void do_clique_percolation_variant_5b(const int32_t min_k, const int32_t 
 			, isf
 			);
 		cout << HOWLONG << endl;
-		/* The found communities are now in found_communities
-		 * Gotta write them out
+		/* The found communities are now in found_communities. Gotta write them out
 		 */
 		write_all_communities_for_this_k(output_dir_name, k, found_communities, *current_percolation_level, the_cliques, network);
 		cout << HOWLONG << endl;
@@ -418,29 +425,22 @@ static void do_clique_percolation_variant_5b(const int32_t min_k, const int32_t 
 		PP(new_k);
 		if(new_k > max_k)
 			break;
-		clustering :: components & new_percolation_level = all_percolation_levels.at(new_k);
+
+		/* Now, to check which communities (and cliques therein) are
+		 * suitable for passing up to the next level
+		 */
+		clustering :: components * new_percolation_level = &all_percolation_levels.at(new_k);
 
 		source_components.clear();
 		PP(__LINE__);
-		for(int32_t f = 0; f < (int32_t) found_communities.size(); f++) {
-			PP2(f, ELAPSED);
-			const int32_t new_cand = new_percolation_level.top_empty_component();
-			const clustering :: member_list_type & members_of_this_found_community = current_percolation_level->get_members(found_communities.at(f));
-			int32_t number_of_big_enough_cliques = 0;
-			for( clustering :: member_list_type :: const_iterator i = members_of_this_found_community.get().begin()
-				; i != members_of_this_found_community.get().end()
-				; i++) {
-				const int32_t clique_id = *i;
-				if(the_cliques.at(clique_id).size() >= size_t(new_k)) {
-					new_percolation_level.move_node(clique_id, new_cand);
-					++ number_of_big_enough_cliques;
-				}
-			}
-			if(new_cand == new_percolation_level.top_empty_component()) {
-			} else {
-				source_components.push_back(new_cand);
-			}
-		}
+		source_components_for_the_next_level (
+				source_components
+				, new_percolation_level
+				, new_k
+				, found_communities
+				, current_percolation_level
+				, the_cliques
+				);
 		PP(__LINE__);
 	}
 }
@@ -592,3 +592,32 @@ static void write_all_communities_for_this_k(const char * output_dir_name
 			write_nodes_here.close();
 }
 
+static void source_components_for_the_next_level (
+		vector<int32_t> &source_components
+		,       clustering :: components * new_percolation_level
+		, const int32_t new_k
+		, const vector<int32_t> &found_communities
+		, const clustering :: components * old_percolation_level
+		, const vector<clique> &the_cliques
+		) { // identify candidates for the next level
+	assert(source_components.empty());
+		for(int32_t f = 0; f < (int32_t) found_communities.size(); f++) {
+			PP2(f, ELAPSED);
+			const int32_t new_cand = new_percolation_level->top_empty_component();
+			const clustering :: member_list_type & members_of_this_found_community = old_percolation_level->get_members(found_communities.at(f));
+			int32_t number_of_big_enough_cliques = 0;
+			for( clustering :: member_list_type :: const_iterator i = members_of_this_found_community.get().begin()
+				; i != members_of_this_found_community.get().end()
+				; i++) {
+				const int32_t clique_id = *i;
+				if(the_cliques.at(clique_id).size() >= size_t(new_k)) {
+					new_percolation_level->move_node(clique_id, new_cand);
+					++ number_of_big_enough_cliques;
+				}
+			}
+			if(new_cand == new_percolation_level->top_empty_component()) {
+			} else {
+				source_components.push_back(new_cand);
+			}
+		}
+}
