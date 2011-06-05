@@ -27,7 +27,7 @@ using namespace std;
 
 typedef vector<int32_t> clique; // the nodes will be in increasing numerical order
 
-static void do_clique_percolation_variant_5b(vector<clustering :: components> &all_percolation_levels, const int32_t min_k, const vector< clique > &the_cliques, const char * output_dir_name, const graph :: NetworkInterfaceConvertedToString *network) ;
+static void do_clique_percolation_variant_5b(const int32_t min_k, const int32_t max_k, const vector< clique > &the_cliques, const char * output_dir_name, const graph :: NetworkInterfaceConvertedToString *network) ;
 static void write_all_communities_for_this_k(const char * output_dir_name
 		, const int32_t k
 		, const vector<int32_t> &found_communities
@@ -107,15 +107,9 @@ int main(int argc, char **argv) {
 	PP(max_clique_size);
 	assert(max_clique_size > 0);
 
-	vector<clustering :: components> all_percolation_levels(max_clique_size+1);
-	for(int32_t i = min_k; i <= max_clique_size; i++) {
-		clustering :: components &one_percolation_level = all_percolation_levels.at(i);
-		one_percolation_level.setN(C);
-	}
-
 	// finally, call the clique_percolation algorithm proper
 
-	do_clique_percolation_variant_5b(all_percolation_levels, min_k, the_cliques, output_dir_name, network.get());
+	do_clique_percolation_variant_5b(min_k, max_clique_size, the_cliques, output_dir_name, network.get());
 }
 
 class bloom { // http://en.wikipedia.org/wiki/Bloom_filter
@@ -319,7 +313,7 @@ static void neighbours_of_one_clique(const vector<clique> &the_cliques
 }
 
 static void one_k (vector<int32_t> & found_communities
-		, vector<int32_t> candidate_components __attribute__((unused))
+		, vector<int32_t> candidate_components
 		, clustering :: components &current_percolation_level
 		, const int32_t t
 		, const vector<clique> &the_cliques
@@ -328,7 +322,8 @@ static void one_k (vector<int32_t> & found_communities
 		, const intersecting_clique_finder &isf
 	     );
 
-static void do_clique_percolation_variant_5b(vector<clustering :: components> &all_percolation_levels, const int32_t min_k, const vector< clique > &the_cliques, const char * output_dir_name, const graph :: NetworkInterfaceConvertedToString *network) {
+static void do_clique_percolation_variant_5b(const int32_t min_k, const int32_t max_k, const vector< clique > &the_cliques, const char * output_dir_name, const graph :: NetworkInterfaceConvertedToString *network) {
+
 	assert(network);
 	assert(output_dir_name);
 	if(the_cliques.size() > static_cast<size_t>(std :: numeric_limits<int32_t> :: max())) {
@@ -338,7 +333,13 @@ static void do_clique_percolation_variant_5b(vector<clustering :: components> &a
 	if(C==1) { // nothing to be done, just one clique. Leave it on its own.
 		return;
 	}
-	const int32_t max_k = all_percolation_levels.size()-1;
+
+	vector<clustering :: components> all_percolation_levels(max_k+1);
+	for(int32_t i = min_k; i <= max_k; i++) {
+		clustering :: components &one_percolation_level = all_percolation_levels.at(i);
+		one_percolation_level.setN(C);
+	}
+
 	PP3(C, min_k, max_k);
 	assert(min_k > 0 && min_k <= max_k && C > 1);
 
@@ -352,18 +353,28 @@ static void do_clique_percolation_variant_5b(vector<clustering :: components> &a
 	 * The above is generic to all k
 	 * The rest is specific for each k
 	 */
+
+	/* Here's the loop:
+	 *
+	 * - take list of source components as input for a new value of k
+	 * - for each source component 
+	 *   - do the comm-finding in it, appending the found communities to found_communities,
+	 *                                 and recording the detail in aa components structure.
+	 * - then prepare the next set of candidates, by copying the relevant components
+	 *               and cliques into the next value of k
+	 */
 	clustering :: components & lowest_percolation_level = all_percolation_levels.at(min_k);
 	const int32_t first_candidate_community = lowest_percolation_level.top_empty_component();
 	for(int c=0; c<C; c++) {
 		lowest_percolation_level.move_node(c,first_candidate_community); // move 'node' c (i.e. the c-th clique) into component 0
 		// all the nodes (cliques) are in one big community for now.
 	}
-	vector<int32_t> candidate_components;
-	candidate_components.push_back(first_candidate_community);
+	vector<int32_t> source_components;
+	source_components.push_back(first_candidate_community);
 
 	create_directory_for_output(output_dir_name);
-	vector<int32_t> found_communities;
 	for(int32_t k = min_k; k<=max_k; k++) {
+		vector<int32_t> found_communities;
 		PP2(k, ELAPSED);
 		clustering :: components & current_percolation_level = all_percolation_levels.at(k);
 		const int32_t t = k-1;
@@ -380,7 +391,7 @@ static void do_clique_percolation_variant_5b(vector<clustering :: components> &a
 
 		one_k(
 			found_communities
-			, candidate_components
+			, source_components
 			, current_percolation_level
 			, t
 			, the_cliques
@@ -401,7 +412,7 @@ static void do_clique_percolation_variant_5b(vector<clustering :: components> &a
 			break;
 		clustering :: components & new_percolation_level = all_percolation_levels.at(new_k);
 
-		candidate_components.clear();
+		source_components.clear();
 		PP(__LINE__);
 		for(int32_t f = 0; f < (int32_t) found_communities.size(); f++) {
 			PP2(f, ELAPSED);
@@ -419,12 +430,10 @@ static void do_clique_percolation_variant_5b(vector<clustering :: components> &a
 			}
 			if(new_cand == new_percolation_level.top_empty_component()) {
 			} else {
-				candidate_components.push_back(new_cand);
+				source_components.push_back(new_cand);
 			}
 		}
 		PP(__LINE__);
-
-		found_communities.clear();
 	}
 }
 
