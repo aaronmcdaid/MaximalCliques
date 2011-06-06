@@ -95,7 +95,7 @@ public:
 };
 
 
-static void do_clique_percolation_variant_5b(const int32_t min_k, const int32_t max_k, const vector< clique > &the_cliques, const char * output_dir_name, const graph :: NetworkInterfaceConvertedToString *network) ;
+static void do_clique_percolation_variant_5b(const int32_t min_k, const int32_t max_k, const int32_t max_k_to_percolate, const vector< clique > &the_cliques, const char * output_dir_name, const graph :: NetworkInterfaceConvertedToString *network) ;
 static void write_all_communities_for_this_k(const char * output_dir_name
 		, const int32_t k
 		, const vector<int32_t> &found_communities
@@ -116,7 +116,6 @@ static void source_components_for_the_next_level (
 
 static string memory_usage() {
 	ostringstream mem;
-	PP("hi");
 	ifstream proc("/proc/self/status");
 	string s;
 	while(getline(proc, s), !proc.fail()) {
@@ -144,7 +143,11 @@ int main(int argc, char **argv) {
 	const char * edgeListFileName   = args_info.inputs[0];
 	const char * output_dir_name   = args_info.inputs[1];
 	const int min_k = args_info.k_arg;
+	int max_k_to_percolate = args_info.K_arg;
+	if(args_info.K_arg == -1) // default to using as many as possible
+		max_k_to_percolate = numeric_limits<int32_t> :: max();
 	assert(min_k > 2);
+	assert(max_k_to_percolate >= min_k);
 
         std :: auto_ptr<graph :: NetworkInterfaceConvertedToString > network;
 	if(args_info.stringIDs_flag) {
@@ -177,7 +180,9 @@ int main(int argc, char **argv) {
 	}
 	assert(!cliqueFrequencies.empty());
 	int max_clique_size = cliqueFrequencies.rbegin()->first;
-	PP(max_clique_size);
+	if(max_k_to_percolate > max_clique_size)
+		max_k_to_percolate = max_clique_size;
+	PP3(min_k, max_k_to_percolate, max_clique_size);
 	assert(max_clique_size > 0);
 	assert(max_clique_size >= min_k);
 	for(int k = min_k; k<=max_clique_size; k++) {
@@ -186,7 +191,7 @@ int main(int argc, char **argv) {
 
 	// finally, call the clique_percolation algorithm proper
 
-	do_clique_percolation_variant_5b(min_k, max_clique_size, the_cliques, output_dir_name, network.get());
+	do_clique_percolation_variant_5b(min_k, max_clique_size, max_k_to_percolate, the_cliques, output_dir_name, network.get());
 }
 
 class bloom { // http://en.wikipedia.org/wiki/Bloom_filter
@@ -416,7 +421,8 @@ static void one_k (vector<int32_t> & found_communities
 		, const intersecting_clique_finder &isf
 	     );
 
-static void do_clique_percolation_variant_5b(const int32_t min_k, const int32_t max_k, const vector< clique > &the_cliques, const char * output_dir_name, const graph :: NetworkInterfaceConvertedToString *network) {
+static void do_clique_percolation_variant_5b(const int32_t min_k, const int32_t max_k, const int32_t max_k_to_percolate, const vector< clique > &the_cliques, const char * output_dir_name, const graph :: NetworkInterfaceConvertedToString *network) {
+	assert(max_k_to_percolate <= max_k);
 
 	assert(network);
 	assert(output_dir_name);
@@ -428,7 +434,7 @@ static void do_clique_percolation_variant_5b(const int32_t min_k, const int32_t 
 		return;
 	}
 
-	PP3(C, min_k, max_k);
+	PP4(C, min_k, max_k, max_k_to_percolate);
 	assert(min_k > 0 && min_k <= max_k && C > 1);
 
 	int32_t power_up = 1; // this is to be the smallest power of 2 greater than, or equal to, the number of cliques
@@ -472,7 +478,7 @@ static void do_clique_percolation_variant_5b(const int32_t min_k, const int32_t 
 	 * - the input is essentially the source_components object, this will be updated at the end of each loop.
 	 * - the output will be going into current_percolation_level, which again will be different at each loop.
 	 */
-	for(int32_t k = min_k; k<=max_k /* we never actually reach this, see the `break` below*/; k++) {
+	for(int32_t k = min_k; k<=max_k_to_percolate; k++) {
 		vector<int32_t> found_communities; // the component_ids of the communities that will be found
 		const int32_t t = k-1;
 
@@ -489,7 +495,7 @@ static void do_clique_percolation_variant_5b(const int32_t min_k, const int32_t 
 				<< HOWLONG << endl;
 		}
 
-		PP3(__LINE__, k, ELAPSED);
+		PP4(__LINE__, k, ELAPSED, memory_usage());
 		one_k(
 			found_communities
 			, source_components
@@ -509,7 +515,7 @@ static void do_clique_percolation_variant_5b(const int32_t min_k, const int32_t 
 		PP3(k, found_communities.size(), ELAPSED);
 
 		const int32_t new_k = k + 1;
-		if(new_k > max_k) {
+		if(new_k > max_k_to_percolate) {
 			delete current_percolation_level;
 			current_percolation_level = NULL;
 			break;
@@ -612,7 +618,7 @@ while (!candidate_components.empty()) {
 				++num_cliques_in_this_community;
 				static int64_t move_count = 0;
 				if(move_count % 100 == 0)
-					PP3(move_count, ELAPSED, found_communities.size());
+					PP4(move_count, the_cliques.size(), ELAPSED, found_communities.size());
 				++ move_count;
 			}
 			// const int32_t new_size_of_growing_community = current_percolation_level.get_members(component_to_grow_into).size();

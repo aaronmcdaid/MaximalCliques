@@ -2,6 +2,7 @@ package "Clique Percolation 5th variant"
 version "0.5"
 purpose "Yet another clique percolation algorithm"
 option  "k"                  k "minimum size of clique, k. Must be at least 3."               int        default="3" no
+option  "K"                  K "max k of interest. default is to do all k.    "               int        default="-1" no
 option  "stringIDs"          - "string IDs in the input"             flag       off
 # option  "git-version"        - "detailed version description"        flag       off
 # option  "verbose"            v "detailed debugging"                  flag       off
