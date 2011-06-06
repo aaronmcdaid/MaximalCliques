@@ -211,7 +211,14 @@ public: // make private
 	int64_t calls_to_set;
 	std :: tr1 :: hash<int64_t> h;
 public:
-	bloom() : data(this->l), occupied(0), calls_to_set(0) {  // 10 giga-bits 1.25 GB
+	void clear() {
+		this->data.clear();
+		this->data.resize(this->l);
+		this->occupied = 0;
+		this->calls_to_set = 0;
+	}
+	bloom() {  // 10 giga-bits 1.25 GB
+		this->clear();
 	}
 	bool test(const int64_t a) const {
 		const int64_t b = h(a) % l;
@@ -234,19 +241,28 @@ class intersecting_clique_finder { // based on a tree of all cliques, using a bl
 public:
 	const int32_t power_up; // the next power of two above the number of cliques
 	double build_time; // seconds to construct
-	// intersecting_clique_finder(const int32_t p, const vector<clique> &the_cliques, const int32_t t) : power_up(p) {
-	intersecting_clique_finder(const int32_t p, const vector<clique> &the_cliques, const vector<int32_t> &the_clique_ids, const comp & current_percolation_level, const int32_t source_component_id) : power_up(p) {
+	void rebuild(const vector<clique> &the_cliques
+			, const vector<int32_t> &the_clique_ids
+			, const comp & current_percolation_level
+			, const int32_t source_component_id)
+	{
 		const double pre_constructed = ELAPSED;
+		bl.clear();
 		this->num_cliques_in_here = 0;
 		// initialize with the cliques that have at least t members in them.
 		for(size_t x = 0; x < the_clique_ids.size(); x++) {
 			const int c = the_clique_ids.at(x);
-			assert(current_percolation_level.my_component_id(c) == source_component_id);
-			++ num_cliques_in_here;
-			this->add_clique_to_bloom(the_cliques.at(c), c+power_up);
+			if(current_percolation_level.my_component_id(c) == source_component_id) {
+				// we need this if during rebuilding, as sometimes the_clique_ids is obsolete (too large)
+				++ num_cliques_in_here;
+				this->add_clique_to_bloom(the_cliques.at(c), c+power_up);
+			}
 		}
 		const double post_constructed = ELAPSED;
 		this->build_time = post_constructed - pre_constructed;
+	}
+	intersecting_clique_finder(const int32_t p, const vector<clique> &the_cliques, const vector<int32_t> &the_clique_ids, const comp & current_percolation_level, const int32_t source_component_id) : power_up(p) {
+		this->rebuild(the_cliques, the_clique_ids, current_percolation_level, source_component_id);
 	}
 	int32_t get_num_cliques_in_here() const {
 		return num_cliques_in_here;
@@ -294,7 +310,8 @@ public:
 struct assigned_branches_t : private assigned_branches_t_private_data_members {
 public:
 	int32_t num_valid_leaf_assigns; // this is public, to let us reset when we feel like it.
-	assigned_branches_t(int32_t p, int32_t C) {
+	explicit assigned_branches_t(int32_t p, int32_t C) {
+		this->num_valid_leaf_assigns = 0;
 		this->power_up = p;
 		this->number_of_cliques = C;
 		this->total_marked = 0;
@@ -313,8 +330,8 @@ public:
 		assert(branch_id >= this->power_up);
 		if(this->assigned_branches.at(branch_id) == false) {
 			++ this->num_valid_leaf_assigns;
-			// if(this->num_valid_leaf_assigns % 100 == 0)
-				// PP2(this->num_valid_leaf_assigns, ELAPSED);
+			if(this->num_valid_leaf_assigns % 10000 == 0)
+				PP2(this->num_valid_leaf_assigns, ELAPSED);
 		}
 		return this->mark_as_done_(branch_id);
 	}
@@ -633,6 +650,11 @@ static void one_k (vector<int32_t> & found_communities
 	int64_t move_count = 0;
 	assert (!source_components.empty());
 	while (!source_components.empty()) {
+		const int32_t num_assigned_at_the_start_of_this_source = assigned_branches.num_valid_leaf_assigns;
+		/* ie.  assigned_branches.num_valid_leaf_assigns - num_assigned_at_the_start_of_this_source
+		 * will tell us how many cliques have, so far, been assigned in this source.
+		 * By comparing that to num_cliques_in_this_source, we can see how far from the end we are
+		 */
 
 		assert(source_components.size() == members_of_the_source_components.size());
 		const int32_t source_component = source_components.back();
@@ -683,6 +705,26 @@ static void one_k (vector<int32_t> & found_communities
 				vector<int32_t> fresh_frontier_cliques_found;
 				const int32_t current_component_id = current_percolation_level.my_component_id(popped_clique);
 				assert(current_component_id == component_to_grow_into);
+
+				// 350 -> 390  = .12
+				// 400 -> 420  = .08
+				// 440 -> 450  = .70
+				if(0){ // rebuild isf?
+					const int32_t num_cliques_remaining_in_this_source
+						= num_cliques_in_this_source
+						- (assigned_branches.num_valid_leaf_assigns - num_assigned_at_the_start_of_this_source);
+					assert(num_cliques_remaining_in_this_source >= 0);
+					if(num_cliques_remaining_in_this_source > 100
+							&& 2*num_cliques_remaining_in_this_source < isf.get_num_cliques_in_here())
+					{
+						cout << "We can rebuild you" << endl;
+						PP2(num_cliques_remaining_in_this_source, isf.get_num_cliques_in_here());
+		isf.rebuild(the_cliques, the_cliques_yet_to_be_assigned_in_this_source_component.get_all_members(), current_percolation_level, source_component);
+		isf.dump_state(t+1);
+					}
+				}
+
+
 				neighbours_of_one_clique(the_cliques, popped_clique, current_percolation_level, t, component_to_grow_into, source_component, isf, searches_performed, fresh_frontier_cliques_found, assigned_branches);
 				// int32_t search_successes = fresh_frontier_cliques_found.size();
 				// PP2(search_successes, searches_performed);
@@ -710,6 +752,7 @@ static void one_k (vector<int32_t> & found_communities
 			found_communities.push_back(component_to_grow_into);
 			// PP3(__LINE__, ELAPSED, num_cliques_in_this_community);
 		}
+		assert(num_cliques_in_this_source == assigned_branches.num_valid_leaf_assigns - num_assigned_at_the_start_of_this_source);
 		assert(the_cliques_yet_to_be_assigned_in_this_source_component.size()==0);
 		members_of_the_source_components.pop_back();
 	} // looping over the source components
