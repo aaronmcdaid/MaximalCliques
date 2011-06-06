@@ -233,19 +233,20 @@ class intersecting_clique_finder { // based on a tree of all cliques, using a bl
 	int32_t num_cliques_in_here;
 public:
 	const int32_t power_up; // the next power of two above the number of cliques
-	intersecting_clique_finder(const int32_t p) : power_up(p) {
-		this->num_cliques_in_here = 0;
-	}
-	intersecting_clique_finder(const int32_t p, const vector<clique> &the_cliques, const int32_t t) : power_up(p) {
+	double build_time; // seconds to construct
+	// intersecting_clique_finder(const int32_t p, const vector<clique> &the_cliques, const int32_t t) : power_up(p) {
+	intersecting_clique_finder(const int32_t p, const vector<clique> &the_cliques, const vector<int32_t> &the_clique_ids, const comp & current_percolation_level, const int32_t source_component_id) : power_up(p) {
+		const double pre_constructed = ELAPSED;
 		this->num_cliques_in_here = 0;
 		// initialize with the cliques that have at least t members in them.
-		const int32_t C = the_cliques.size();
-		for(int c = 0; c < C; c++) {
-			if(the_cliques.at(c).size() > size_t(t)) {
-				++ num_cliques_in_here;
-				this->add_clique_to_bloom(the_cliques.at(c), c+power_up);
-			}
+		for(size_t x = 0; x < the_clique_ids.size(); x++) {
+			const int c = the_clique_ids.at(x);
+			assert(current_percolation_level.my_component_id(c) == source_component_id);
+			++ num_cliques_in_here;
+			this->add_clique_to_bloom(the_cliques.at(c), c+power_up);
 		}
+		const double post_constructed = ELAPSED;
+		this->build_time = post_constructed - pre_constructed;
 	}
 	void dump_state(const int32_t k) const {
 		cout << "isf populated for k = " << k << ". "
@@ -254,6 +255,7 @@ public:
 			<< "  " << this->num_cliques_in_here << " cliques "
 			<< HOWLONG
 			<< "(" << memory_usage() << ")"
+			<< " construct_time=" << this->build_time << "s."
 			<< endl;
 	}
 	const bloom & get_bloom_filter(void) const { return this->bl; }
@@ -477,7 +479,6 @@ static void one_k (vector<int32_t> & found_communities
 		, const vector<clique> &the_cliques
 		, const int32_t power_up
 		, const int32_t C
-		, const intersecting_clique_finder &isf
 	     );
 
 static void do_clique_percolation_variant_5b(const int32_t min_k, const int32_t max_k, const int32_t max_k_to_percolate, const vector< clique > &the_cliques, const char * output_dir_name, const graph :: NetworkInterfaceConvertedToString *network) {
@@ -545,9 +546,6 @@ static void do_clique_percolation_variant_5b(const int32_t min_k, const int32_t 
 		vector<int32_t> found_communities; // the component_ids of the communities that will be found
 		const int32_t t = k-1;
 
-		intersecting_clique_finder isf(power_up, the_cliques, t);
-		isf.dump_state(k);
-
 		assert(members_of_the_source_components.size() > 0);
 		assert(t == k-1);
 		one_k(
@@ -559,7 +557,6 @@ static void do_clique_percolation_variant_5b(const int32_t min_k, const int32_t 
 			, the_cliques
 			, power_up
 			, C
-			, isf
 			);
 		assert(source_components.size()==0);
 		assert(members_of_the_source_components.size()==0); // ensure everything has been consumed
@@ -608,7 +605,6 @@ static void one_k (vector<int32_t> & found_communities
 		, const vector<clique> &the_cliques
 		, const int32_t power_up
 		, const int32_t C
-		, const intersecting_clique_finder &isf
 	     ) {
 	PP2(source_components.size(), members_of_the_source_components.size());
 	/* We need a function that,
@@ -634,10 +630,20 @@ static void one_k (vector<int32_t> & found_communities
 	int64_t move_count = 0;
 	assert (!source_components.empty());
 	while (!source_components.empty()) {
+
 		assert(source_components.size() == members_of_the_source_components.size());
 		const int32_t source_component = source_components.back();
 		source_components.pop_back();
 		maybe_available & the_cliques_yet_to_be_assigned_in_this_source_component = members_of_the_source_components.back();
+
+		/* A distinct intersecting_clique_finder for each source_component,
+		 * which can be wiped and rebuilt occasionally
+		 */
+		intersecting_clique_finder isf(power_up, the_cliques, the_cliques_yet_to_be_assigned_in_this_source_component.get_all_members(), current_percolation_level, source_component);
+		isf.dump_state(t+1);
+
+
+
 		assert( -1 != the_cliques_yet_to_be_assigned_in_this_source_component.get_next(current_percolation_level, source_component) ); // should never be fed an empty component
 		while( -1 != the_cliques_yet_to_be_assigned_in_this_source_component.get_next(current_percolation_level, source_component) ) { // keep pulling out communities from current source-component
 			// - find a clique that hasn't yet been assigned to a community
