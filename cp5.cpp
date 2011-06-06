@@ -264,11 +264,19 @@ public:
 };
 struct too_many_cliques_exception : public std :: exception { };
 
-struct assigned_branches_t {
+class assigned_branches_t_private_data_members {
+public:
 	int32_t power_up;
 	int32_t number_of_cliques;
+	int32_t total_marked;
 	vector<bool> assigned_branches; // the branches where all subleaves have already been assigned. // the recursive search should stop immediately
-	assigned_branches_t(int32_t p, int32_t C) : power_up(p), number_of_cliques(C) {
+};
+struct assigned_branches_t : private assigned_branches_t_private_data_members {
+public:
+	assigned_branches_t(int32_t p, int32_t C) {
+		this->power_up = p;
+		this->number_of_cliques = C;
+		this->total_marked = 0;
 		assigned_branches.resize(2*power_up, false);
 		int total_premarked_as_invalid = 0;
 		for(int invalid_leaf = power_up + C; invalid_leaf < 2 * power_up; invalid_leaf++ ) {
@@ -276,10 +284,14 @@ struct assigned_branches_t {
 			total_premarked_as_invalid += marked_this_time;
 		}
 	}
+	const assigned_branches_t_private_data_members & get() const {
+		return *this;
+	}
 	int32_t mark_as_done(const int32_t branch_id) {
 		assert(branch_id >= 0 && size_t(branch_id) < this->assigned_branches.size());
 		int32_t marked_this_time = 0;
 		if(this->assigned_branches.at(branch_id) == false) {
+			++ total_marked;
 			this->assigned_branches.at(branch_id) = true;
 			++ marked_this_time;
 			if(branch_id > 1) { // all branches, but the root, will have a partner
@@ -325,19 +337,19 @@ restart:
 	//   - if not at a leaf
 	//     - decide which sub branches, if any, to visit. And decide in what order.
 
-	assert(assigned_branches.assigned_branches.at(branch_identifier) == false);
+	assert(assigned_branches.get().assigned_branches.at(branch_identifier) == false);
 	{ //optional optimization. If exactly one subranch is unassigned, then skip directly to it
 		if(branch_identifier < search_tree.power_up) {
 			const int32_t left_subnode_id = branch_identifier << 1;
 			assert(left_subnode_id >= 0);  // just in case the <<1 made it negative
 			const int32_t right_subnode_id = left_subnode_id + 1;
-			if         (assigned_branches.assigned_branches.at(left_subnode_id)
-				&& !assigned_branches.assigned_branches.at(right_subnode_id)) {
+			if         (assigned_branches.get().assigned_branches.at(left_subnode_id)
+				&& !assigned_branches.get().assigned_branches.at(right_subnode_id)) {
 				branch_identifier = right_subnode_id;
 				goto restart; // oh yeah, you're not really optimizing until you have a goto
 			}
-			if         (!assigned_branches.assigned_branches.at(left_subnode_id)
-				&& assigned_branches.assigned_branches.at(right_subnode_id)) {
+			if         (!assigned_branches.get().assigned_branches.at(left_subnode_id)
+				&& assigned_branches.get().assigned_branches.at(right_subnode_id)) {
 				branch_identifier = left_subnode_id;
 				goto restart; // oh yeah, you're not really optimizing until you have a goto
 			}
@@ -376,10 +388,10 @@ restart:
 		const int32_t right_subnode_id = left_subnode_id + 1;
 
 		const int32_t potential_overlap_left  =
-			assigned_branches.assigned_branches.at(left_subnode_id) ? 0 :
+			assigned_branches.get().assigned_branches.at(left_subnode_id) ? 0 :
 			search_tree.overlap_estimate(current_clique, left_subnode_id);
 		const int32_t potential_overlap_right =
-			assigned_branches.assigned_branches.at(right_subnode_id) ? 0 :
+			assigned_branches.get().assigned_branches.at(right_subnode_id) ? 0 :
 			search_tree.overlap_estimate(current_clique, right_subnode_id);
 		searches_performed += 2; // checked the left and the right
 
@@ -411,7 +423,7 @@ static void neighbours_of_one_clique(const vector<clique> &the_cliques
 	//    - BUT without the cliques that are already in the current component
 		assert(current_component_id == components.my_component_id(current_clique_id));
 		const int32_t root_node = 1;
-		if(assigned_branches.assigned_branches.at(root_node) == false) // otherwise, we've assigned everything and the algorithm can complete
+		if(assigned_branches.get().assigned_branches.at(root_node) == false) // otherwise, we've assigned everything and the algorithm can complete
 			recursive_search(search_tree
 				, root_node
 				, current_clique_id
@@ -525,10 +537,10 @@ static void do_clique_percolation_variant_5b(const int32_t min_k, const int32_t 
 			);
 		/* The found communities are now in found_communities. Gotta write them out
 		 */
-		PP3(__LINE__, k, ELAPSED);
+		PP4(__LINE__, "about to write", k, ELAPSED);
+		PP3(k, found_communities.size(), ELAPSED);
 		write_all_communities_for_this_k(output_dir_name, k, found_communities, *current_percolation_level, the_cliques, network);
 
-		PP3(k, found_communities.size(), ELAPSED);
 
 		const int32_t new_k = k + 1;
 		if(new_k > max_k_to_percolate) {
@@ -585,7 +597,9 @@ static void one_k (vector<int32_t> & found_communities
 	}
 
 
+	static int64_t move_count = 0;
 while (!candidate_components.empty()) {
+	assert(candidate_components.size()==1); //just using one component in the versions from now on.
 	assert(candidate_components.size() == members_of_the_source_components.size());
 	const int32_t source_component = candidate_components.back();
 	// PP2(t+1, source_component);
@@ -601,7 +615,7 @@ while (!candidate_components.empty()) {
 		PP2(__LINE__, ELAPSED);
 		const int32_t seed_clique = the_cliques_yet_to_be_assigned_in_this_source_component.get_next(current_percolation_level, source_component);
 		// PP(seed_clique);
-		assert(assigned_branches.assigned_branches.at(power_up + seed_clique) == false);
+		assert(assigned_branches.get().assigned_branches.at(power_up + seed_clique) == false);
 		assert(the_cliques.at(seed_clique).size() > size_t(t));
 
 		stack< int32_t, vector<int32_t> > frontier_cliques;
@@ -610,10 +624,13 @@ while (!candidate_components.empty()) {
 		int32_t num_cliques_in_this_community = 0;
 
 		current_percolation_level.move_node(seed_clique, component_to_grow_into, source_component);
+		++num_cliques_in_this_community;
+		++ move_count;
 
 		PP2(__LINE__, ELAPSED);
 		while(!frontier_cliques.empty()) {
-			// PP(frontier_cliques.size());
+			PP(frontier_cliques.size());
+			PP2(assigned_branches.get().total_marked, 1048576 - assigned_branches.get().total_marked);
 			const int32_t popped_clique = frontier_cliques.top();
 			frontier_cliques.pop();
 
@@ -624,7 +641,8 @@ while (!candidate_components.empty()) {
 			const int32_t current_component_id = current_percolation_level.my_component_id(popped_clique);
 			assert(current_component_id == component_to_grow_into);
 			neighbours_of_one_clique(the_cliques, popped_clique, current_percolation_level, t, component_to_grow_into, source_component, isf, searches_performed, fresh_frontier_cliques_found, assigned_branches);
-			// int32_t search_successes = fresh_frontier_cliques_found.size();
+			int32_t search_successes = fresh_frontier_cliques_found.size();
+			PP2(search_successes, searches_performed);
 			// const int32_t old_size_of_growing_community = current_percolation_level.get_members(component_to_grow_into).size();
 			for(int x = 0; x < (int)fresh_frontier_cliques_found.size(); x++) {
 				const int32_t frontier_clique_to_be_moved_in = fresh_frontier_cliques_found.at(x);
@@ -632,10 +650,11 @@ while (!candidate_components.empty()) {
 				assert(source_component == current_percolation_level.my_component_id(frontier_clique_to_be_moved_in));
 				current_percolation_level.move_node(frontier_clique_to_be_moved_in, component_to_grow_into, source_component);
 				++num_cliques_in_this_community;
-				static int64_t move_count = 0;
-				if(move_count % 100 == 0)
-					PP4(move_count, the_cliques.size(), ELAPSED, found_communities.size());
 				++ move_count;
+				if(move_count % 100 == 0) {
+					PP4(move_count, the_cliques.size(), ELAPSED, found_communities.size());
+					PP(assigned_branches.get().total_marked);
+				}
 			}
 			// const int32_t new_size_of_growing_community = current_percolation_level.get_members(component_to_grow_into).size();
 			assert(frontier_cliques.size() < the_cliques.size());
@@ -646,6 +665,7 @@ while (!candidate_components.empty()) {
 		found_communities.push_back(component_to_grow_into);
 		PP3(__LINE__, ELAPSED, num_cliques_in_this_community);
 	}
+	PP3(assigned_branches.get().total_marked, the_cliques.size(), move_count);
 } // looping over the source components
 }
 
