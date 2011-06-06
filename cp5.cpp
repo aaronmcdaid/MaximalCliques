@@ -248,6 +248,9 @@ public:
 		const double post_constructed = ELAPSED;
 		this->build_time = post_constructed - pre_constructed;
 	}
+	int32_t get_num_cliques_in_here() const {
+		return num_cliques_in_here;
+	}
 	void dump_state(const int32_t k) const {
 		cout << "isf populated for k = " << k << ". "
 			<< " " << thou(this->get_bloom_filter().occupied)
@@ -635,12 +638,14 @@ static void one_k (vector<int32_t> & found_communities
 		const int32_t source_component = source_components.back();
 		source_components.pop_back();
 		maybe_available & the_cliques_yet_to_be_assigned_in_this_source_component = members_of_the_source_components.back();
+		const int32_t num_cliques_in_this_source = the_cliques_yet_to_be_assigned_in_this_source_component.size();
 
 		/* A distinct intersecting_clique_finder for each source_component,
 		 * which can be wiped and rebuilt occasionally
 		 */
 		intersecting_clique_finder isf(power_up, the_cliques, the_cliques_yet_to_be_assigned_in_this_source_component.get_all_members(), current_percolation_level, source_component);
 		isf.dump_state(t+1);
+		assert(num_cliques_in_this_source == isf.get_num_cliques_in_here());
 
 
 
