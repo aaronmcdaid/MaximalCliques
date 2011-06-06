@@ -230,9 +230,31 @@ public:
 const int64_t bloom :: l = 10000000000;
 class intersecting_clique_finder { // based on a tree of all cliques, using a bloom filter to cut branch from the search tree
 	bloom bl;
+	int32_t num_cliques_in_here;
 public:
 	const int32_t power_up; // the next power of two above the number of cliques
 	intersecting_clique_finder(const int32_t p) : power_up(p) {
+		this->num_cliques_in_here = 0;
+	}
+	intersecting_clique_finder(const int32_t p, const vector<clique> &the_cliques, const int32_t t) : power_up(p) {
+		this->num_cliques_in_here = 0;
+		// initialize with the cliques that have at least t members in them.
+		const int32_t C = the_cliques.size();
+		for(int c = 0; c < C; c++) {
+			if(the_cliques.at(c).size() >= size_t(t)) {
+				++ num_cliques_in_here;
+				this->add_clique_to_bloom(the_cliques.at(c), c+power_up);
+			}
+		}
+	}
+	void dump_state(const int32_t k) const {
+		cout << "isf populated for k = " << k << ". "
+			<< " " << thou(this->get_bloom_filter().occupied)
+			<< "/" << thou(this->get_bloom_filter().l)
+			<< "  " << this->num_cliques_in_here << " cliques "
+			<< HOWLONG
+			<< "(" << memory_usage() << ")"
+			<< endl;
 	}
 	const bloom & get_bloom_filter(void) const { return this->bl; }
 	int32_t overlap_estimate(const clique &new_clique, const int32_t branch_identifier) const {
@@ -523,17 +545,8 @@ static void do_clique_percolation_variant_5b(const int32_t min_k, const int32_t 
 		vector<int32_t> found_communities; // the component_ids of the communities that will be found
 		const int32_t t = k-1;
 
-		intersecting_clique_finder isf(power_up);
-		{
-			for(int c = 0; c < C; c++) {
-				if(the_cliques.at(c).size() >= size_t(t))
-					isf.add_clique_to_bloom(the_cliques.at(c), c+power_up);
-			}
-			cout << "isf populated for k = " << k << ". "
-				<< " " << thou(isf.get_bloom_filter().occupied)
-				<< "/" << thou(isf.get_bloom_filter().l)
-				<< HOWLONG << endl;
-		}
+		intersecting_clique_finder isf(power_up, the_cliques, t);
+		isf.dump_state(k);
 
 		assert(members_of_the_source_components.size() > 0);
 		assert(t == k-1);
