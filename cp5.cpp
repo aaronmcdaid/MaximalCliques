@@ -266,6 +266,7 @@ public:
 };
 struct assigned_branches_t : private assigned_branches_t_private_data_members {
 public:
+	int32_t num_valid_leaf_assigns; // this is public, to let us reset when we feel like it.
 	assigned_branches_t(int32_t p, int32_t C) {
 		this->power_up = p;
 		this->number_of_cliques = C;
@@ -276,11 +277,22 @@ public:
 			int marked_this_time = this->mark_as_done(invalid_leaf);
 			total_premarked_as_invalid += marked_this_time;
 		}
+		this->num_valid_leaf_assigns = 0;
 	}
 	const assigned_branches_t_private_data_members & get() const {
 		return *this;
 	}
 	int32_t mark_as_done(const int32_t branch_id) {
+		assert(branch_id >= this->power_up);
+		if(this->assigned_branches.at(branch_id) == false) {
+			++ this->num_valid_leaf_assigns;
+			// if(this->num_valid_leaf_assigns % 100 == 0)
+				// PP2(this->num_valid_leaf_assigns, ELAPSED);
+		}
+		return this->mark_as_done_(branch_id);
+	}
+private:
+	int32_t mark_as_done_(const int32_t branch_id) {
 		assert(branch_id >= 0 && size_t(branch_id) < this->assigned_branches.size());
 		int32_t marked_this_time = 0;
 		if(this->assigned_branches.at(branch_id) == false) {
@@ -290,7 +302,7 @@ public:
 			if(branch_id > 1) { // all branches, but the root, will have a partner
 			                    // .. if the partner is marked, then move up
 				if(this->assigned_branches.at(branch_id ^ 1) == true) {
-					marked_this_time += this->mark_as_done(branch_id >> 1);
+					marked_this_time += this->mark_as_done_(branch_id >> 1);
 				}
 			}
 		}
@@ -593,14 +605,17 @@ static void one_k (vector<int32_t> & found_communities
 	assert(found_communities.empty());
 
 	assigned_branches_t assigned_branches(power_up, C); // the branches where all subleaves have already been assigned.  the recursive search should stop immediately upon reaching one of these
+	int32_t C2 = 0; // the number of cliques that are big enough in this level, i.e. >= k nodes
 	{ // all the cliques that are too small should be premarked as assigned
 		for(int c=0; c<C; c++) {
 			const int32_t clique_size = the_cliques.at(c).size();
 			if(clique_size <= t) {
 				assigned_branches.mark_as_done(power_up + c);
-			}
+			} else
+				C2 ++;
 		}
 	}
+	assigned_branches.num_valid_leaf_assigns = 0;
 
 
 	int64_t move_count = 0;
@@ -674,6 +689,8 @@ static void one_k (vector<int32_t> & found_communities
 		assert(the_cliques_yet_to_be_assigned_in_this_source_component.size()==0);
 		members_of_the_source_components.pop_back();
 	} // looping over the source components
+	PP2(C2, assigned_branches.num_valid_leaf_assigns);
+	assert(C2 == assigned_branches.num_valid_leaf_assigns);
 }
 
 template<typename T>
