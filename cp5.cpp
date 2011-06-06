@@ -36,8 +36,6 @@ string thou(T number);
 #define ELAPSED (double(clock())/CLOCKS_PER_SEC)
 #define HOWLONG "(runtime: " << ELAPSED <<"s)"
 
-typedef stack<int32_t, vector<int32_t> > int_stack;
-
 class comp { // which component, if any, is this node in?
 private:
 	const int32_t N;
@@ -50,6 +48,9 @@ public:
 		int32_t id = this->com.at(node_id);
 		assert(id >= 0);
 		return id;
+	}
+	int32_t component_count() const {
+		return this->num_components;
 	}
 	int32_t create_empty_component() {
 		return this->num_components ++; // must be *post* increment
@@ -70,26 +71,32 @@ public:
 };
 class maybe_available { // a stack of node_ids that are available (i.e. in the source_component, but not yet assigned to a community
 private:
-	int_stack potentially_available;
+	vector<int32_t> potentially_available; // will be used as a stack; push_back and pop_back
 public:
+	const vector<int32_t> & get_all_members() const {
+		return this->potentially_available;
+	}
 	void insert(int32_t c) {
-		this->potentially_available.push(c);
+		this->potentially_available.push_back(c);
+	}
+	size_t size() const {
+		return this->potentially_available.size();
 	}
 	int32_t get_next(const comp &current_component, int32_t source_component) { // return -1 if none available
-		PP2(__LINE__, ELAPSED);
+		//PP2(__LINE__, ELAPSED);
 		// pop items from the stack until one is identified which hasn't yet been assigned in the current_component
 		// if called repeatedly, it'll return the same value, at least until the relevant node (i.e. clique) is moved from source_component
 		while(1) {
 			if(this->potentially_available.empty()){
-				PP2(__LINE__, ELAPSED);
+				//PP2(__LINE__, ELAPSED);
 				return -1;
 			}
-			const int32_t node_id = this->potentially_available.top();
+			const int32_t node_id = this->potentially_available.back();
 			if(current_component.my_component_id(node_id) == source_component) {
-				PP2(__LINE__, ELAPSED);
+				//PP2(__LINE__, ELAPSED);
 				return node_id;
 			}
-			this->potentially_available.pop(); // this node is no longer available, let's discard it
+			this->potentially_available.pop_back(); // this node is no longer available, let's discard it
 		}
 	}
 };
@@ -156,8 +163,6 @@ int main(int argc, char **argv) {
 	} else {
 		network	= graph :: loading :: make_Network_from_edge_list_int64(edgeListFileName, false, false, true, 0);
 	}
-
-	PP(memory_usage());
 
 	int32_t maxDegree = graph :: stats :: get_max_degree(network->get_plain_graph());
 
