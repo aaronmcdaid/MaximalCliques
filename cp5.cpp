@@ -3,7 +3,7 @@
 #include "graph/stats.hpp"
 #include "macros.hpp"
 #include "cliques.hpp"
-#include "cmdline.h"
+#include "cmdline-cp5.h"
 
 #include <vector>
 #include <tr1/unordered_set>
