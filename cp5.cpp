@@ -213,7 +213,7 @@ public:
 		}
 	}
 };
-const int64_t bloom :: l = 10000000000;
+const int64_t bloom :: l = 100000000000;
 class intersecting_clique_finder { // based on a tree of all cliques, using a bloom filter to cut branch from the search tree
 	bloom bl;
 public:
