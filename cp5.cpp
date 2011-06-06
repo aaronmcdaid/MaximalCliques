@@ -30,6 +30,11 @@ using namespace std;
 
 typedef vector<int32_t> clique; // the nodes will be in increasing numerical order
 
+template<typename T>
+string thou(T number);
+#define PPt(x) PP(thou(x))
+#define ELAPSED (double(clock())/CLOCKS_PER_SEC)
+#define HOWLONG "(runtime: " << ELAPSED <<"s)"
 
 typedef stack<int32_t, vector<int32_t> > int_stack;
 
@@ -71,14 +76,19 @@ public:
 		this->potentially_available.push(c);
 	}
 	int32_t get_next(const comp &current_component, int32_t source_component) { // return -1 if none available
+		PP2(__LINE__, ELAPSED);
 		// pop items from the stack until one is identified which hasn't yet been assigned in the current_component
 		// if called repeatedly, it'll return the same value, at least until the relevant node (i.e. clique) is moved from source_component
 		while(1) {
-			if(this->potentially_available.empty())
+			if(this->potentially_available.empty()){
+				PP2(__LINE__, ELAPSED);
 				return -1;
+			}
 			const int32_t node_id = this->potentially_available.top();
-			if(current_component.my_component_id(node_id) == source_component)
+			if(current_component.my_component_id(node_id) == source_component) {
+				PP2(__LINE__, ELAPSED);
 				return node_id;
+			}
 			this->potentially_available.pop(); // this node is no longer available, let's discard it
 		}
 	}
@@ -103,11 +113,6 @@ static void source_components_for_the_next_level (
 		, const vector<clique> &the_cliques
 		) ; // identify candidates for the next level
 
-template<typename T>
-string thou(T number);
-#define PPt(x) PP(thou(x))
-#define ELAPSED (double(clock())/CLOCKS_PER_SEC)
-#define HOWLONG "(runtime: " << ELAPSED <<"s)"
 
 static string memory_usage() {
 	ostringstream mem;
@@ -453,6 +458,7 @@ static void do_clique_percolation_variant_5b(const int32_t min_k, const int32_t 
 		vector<int32_t> found_communities; // the component_ids of the communities that will be found
 		const int32_t t = k-1;
 
+		PP3(__LINE__, k, ELAPSED);
 		intersecting_clique_finder isf(power_up);
 		{
 			for(int c = 0; c < C; c++) {
@@ -465,6 +471,7 @@ static void do_clique_percolation_variant_5b(const int32_t min_k, const int32_t 
 				<< HOWLONG << endl;
 		}
 
+		PP3(__LINE__, k, ELAPSED);
 		one_k(
 			found_communities
 			, source_components
@@ -478,6 +485,7 @@ static void do_clique_percolation_variant_5b(const int32_t min_k, const int32_t 
 			);
 		/* The found communities are now in found_communities. Gotta write them out
 		 */
+		PP3(__LINE__, k, ELAPSED);
 		write_all_communities_for_this_k(output_dir_name, k, found_communities, *current_percolation_level, the_cliques, network);
 
 		PP3(k, found_communities.size(), ELAPSED);
@@ -550,6 +558,7 @@ while (!candidate_components.empty()) {
 		//   - make it the first 'frontier' clique
 		//   - keep adding it, and all its neighbours, to the community until the frontier is empty
 
+		PP2(__LINE__, ELAPSED);
 		const int32_t seed_clique = the_cliques_yet_to_be_assigned_in_this_source_component.get_next(current_percolation_level, source_component);
 		// PP(seed_clique);
 		assert(assigned_branches.assigned_branches.at(power_up + seed_clique) == false);
@@ -558,9 +567,11 @@ while (!candidate_components.empty()) {
 		stack< int32_t, vector<int32_t> > frontier_cliques;
 		frontier_cliques.push(seed_clique);
 		const int32_t component_to_grow_into = current_percolation_level.create_empty_component();
+		int32_t num_cliques_in_this_community = 0;
 
 		current_percolation_level.move_node(seed_clique, component_to_grow_into, source_component);
 
+		PP2(__LINE__, ELAPSED);
 		while(!frontier_cliques.empty()) {
 			// PP(frontier_cliques.size());
 			const int32_t popped_clique = frontier_cliques.top();
@@ -580,6 +591,11 @@ while (!candidate_components.empty()) {
 				frontier_cliques.push(frontier_clique_to_be_moved_in);
 				assert(source_component == current_percolation_level.my_component_id(frontier_clique_to_be_moved_in));
 				current_percolation_level.move_node(frontier_clique_to_be_moved_in, component_to_grow_into, source_component);
+				++num_cliques_in_this_community;
+				static int64_t move_count = 0;
+				if(move_count % 100 == 0)
+					PP3(move_count, ELAPSED, found_communities.size());
+				++ move_count;
 			}
 			// const int32_t new_size_of_growing_community = current_percolation_level.get_members(component_to_grow_into).size();
 			assert(frontier_cliques.size() < the_cliques.size());
@@ -588,6 +604,7 @@ while (!candidate_components.empty()) {
 		// PP2(t+1, final_size_of_growing_community);
 		// PP(calls_to_recursive_search);
 		found_communities.push_back(component_to_grow_into);
+		PP3(__LINE__, ELAPSED, num_cliques_in_this_community);
 	}
 } // looping over the source components
 }
