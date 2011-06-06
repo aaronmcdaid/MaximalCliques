@@ -127,6 +127,16 @@ static string memory_usage() {
 	return mem.str();
 }
 
+// >        : 13
+// <        : 11
+// by node  : 15
+// none     :
+struct sort_cliques_by_size {
+	bool operator() (const clique &l, const clique &r) const {
+		return l.size() < r.size();
+	}
+};
+
 int main(int argc, char **argv) {
 	gengetopt_args_info args_info;
 
@@ -168,6 +178,12 @@ int main(int argc, char **argv) {
 
 	vector< clique > the_cliques;
 	cliques :: cliquesToVector(network.get(), min_k, the_cliques);
+	{ // sort 'em by size. Pretty arbitrary, but the large ones might share many nodes ?
+		cerr << ELAPSED << endl;
+		sort(the_cliques.begin(), the_cliques.end(), sort_cliques_by_size());
+		// sort(the_cliques.begin(), the_cliques.end());
+		cerr << ELAPSED << endl;
+	}
 
 	const int32_t C = the_cliques.size();
 	if(C==0) {
