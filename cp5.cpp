@@ -113,6 +113,7 @@ static void write_all_communities_for_this_k(const char * output_dir_name
 static void create_directory_for_output(const char *dir);
 static void source_components_for_the_next_level (
 		vector<int32_t> &source_components
+		, vector<maybe_available>  & members_of_the_source_components
 		, comp * new_percolation_level
 		, const int32_t new_k
 		, const vector<int32_t> &found_communities
@@ -226,7 +227,7 @@ public:
 		}
 	}
 };
-const int64_t bloom :: l = 100000000000;
+const int64_t bloom :: l = 10000000000;
 class intersecting_clique_finder { // based on a tree of all cliques, using a bloom filter to cut branch from the search tree
 	bloom bl;
 public:
@@ -359,10 +360,14 @@ restart:
 			if(component_id_of_leaf == component_already_in) {
 				// We should never come in here either, as it's already in assigned_branches
 				assert(1 == 2);
+			} else if (component_id_of_leaf != source_component_id) {
+				/* this leaf is in a different source component
+				 * hence, we can ignore it
+				 * .. but if we had a different bloom for each source, this wouldn't happen
+				 */
 			} else {
-				assert(component_id_of_leaf == source_component_id);
 				// time to check if this clique really does have a big enough overlap
-
+				assert(component_id_of_leaf == source_component_id);
 				assert(size_t(leaf_clique_id) < the_cliques.size());
 				const int32_t actual = actual_overlap(the_cliques.at(leaf_clique_id), current_clique) ;
 				assert(leaf_clique_id != current_clique_id);
@@ -431,8 +436,8 @@ static void neighbours_of_one_clique(const vector<clique> &the_cliques
 }
 
 static void one_k (vector<int32_t> & found_communities
-		, vector<int32_t> candidate_components
-		, vector<maybe_available> members_of_the_source_components
+		, vector<int32_t>  & source_components
+		, vector<maybe_available>  & members_of_the_source_components
 		, comp &current_percolation_level
 		, const int32_t t
 		, const vector<clique> &the_cliques
@@ -484,7 +489,7 @@ static void do_clique_percolation_variant_5b(const int32_t min_k, const int32_t 
 	comp * current_percolation_level = NULL;
 	vector<int32_t> source_components;
 	vector<maybe_available> members_of_the_source_components; // the ids of the cliques in the source component
-	{
+	{ // for k==min_k, just put every clique into one source_component
 		current_percolation_level = new comp(C);
 		source_components.push_back(0);
 		members_of_the_source_components.push_back( maybe_available() );
@@ -499,10 +504,13 @@ static void do_clique_percolation_variant_5b(const int32_t min_k, const int32_t 
 	 * - the output will be going into current_percolation_level, which again will be different at each loop.
 	 */
 	for(int32_t k = min_k; k<=max_k_to_percolate; k++) {
+		cout << endl << "Start processing for k = " << k << ". "
+			<< HOWLONG
+			<< "(" << memory_usage() << ")"
+			<< endl;
 		vector<int32_t> found_communities; // the component_ids of the communities that will be found
 		const int32_t t = k-1;
 
-		PP3(__LINE__, k, ELAPSED);
 		intersecting_clique_finder isf(power_up);
 		{
 			for(int c = 0; c < C; c++) {
@@ -515,7 +523,8 @@ static void do_clique_percolation_variant_5b(const int32_t min_k, const int32_t 
 				<< HOWLONG << endl;
 		}
 
-		PP4(__LINE__, k, ELAPSED, memory_usage());
+		assert(members_of_the_source_components.size() > 0);
+		assert(t == k-1);
 		one_k(
 			found_communities
 			, source_components
@@ -527,11 +536,14 @@ static void do_clique_percolation_variant_5b(const int32_t min_k, const int32_t 
 			, C
 			, isf
 			);
+		assert(source_components.size()==0);
+		assert(members_of_the_source_components.size()==0); // ensure everything has been consumed
 		/* The found communities are now in found_communities. Gotta write them out
 		 */
-		PP4(__LINE__, "about to write", k, ELAPSED);
-		PP3(k, found_communities.size(), ELAPSED);
+		// PP4(__LINE__, "about to write", k, ELAPSED);
+		cout << "Found communities. About to write them: "; PP(ELAPSED);
 		write_all_communities_for_this_k(output_dir_name, k, found_communities, *current_percolation_level, the_cliques, network);
+		cout << "Written " << found_communities.size() << " communities for k = " << k << endl;
 
 
 		const int32_t new_k = k + 1;
@@ -549,6 +561,7 @@ static void do_clique_percolation_variant_5b(const int32_t min_k, const int32_t 
 		source_components.clear();
 		source_components_for_the_next_level (
 				source_components
+				, members_of_the_source_components
 				, new_percolation_level
 				, new_k
 				, found_communities
@@ -563,8 +576,8 @@ static void do_clique_percolation_variant_5b(const int32_t min_k, const int32_t 
 }
 
 static void one_k (vector<int32_t> & found_communities
-		, vector<int32_t> candidate_components
-		, vector<maybe_available> members_of_the_source_components
+		, vector<int32_t> & source_components
+		, vector<maybe_available> & members_of_the_source_components
 		, comp &current_percolation_level
 		, const int32_t t
 		, const vector<clique> &the_cliques
@@ -572,6 +585,7 @@ static void one_k (vector<int32_t> & found_communities
 		, const int32_t C
 		, const intersecting_clique_finder &isf
 	     ) {
+	PP2(source_components.size(), members_of_the_source_components.size());
 	/* We need a function that,
 	 *  - given a list of source components, where the small cliques have been kept out
 	 *  - does clique percolation on that, returning the component_ids of the found communities
@@ -589,76 +603,77 @@ static void one_k (vector<int32_t> & found_communities
 	}
 
 
-	static int64_t move_count = 0;
-while (!candidate_components.empty()) {
-	assert(candidate_components.size()==1); //just using one component in the versions from now on.
-	assert(candidate_components.size() == members_of_the_source_components.size());
-	const int32_t source_component = candidate_components.back();
-	// PP2(t+1, source_component);
-	// cout << HOWLONG << endl;
-	candidate_components.pop_back();
-	maybe_available & the_cliques_yet_to_be_assigned_in_this_source_component = members_of_the_source_components.back();
-	while( -1 != the_cliques_yet_to_be_assigned_in_this_source_component.get_next(current_percolation_level, source_component) ) { // keep pulling out communities from current source-component
-		// - find a clique that hasn't yet been assigned to a community
-		// - create a new community by:
-		//   - make it the first 'frontier' clique
-		//   - keep adding it, and all its neighbours, to the community until the frontier is empty
+	int64_t move_count = 0;
+	assert (!source_components.empty());
+	while (!source_components.empty()) {
+		assert(source_components.size() == members_of_the_source_components.size());
+		const int32_t source_component = source_components.back();
+		source_components.pop_back();
+		maybe_available & the_cliques_yet_to_be_assigned_in_this_source_component = members_of_the_source_components.back();
+		assert( -1 != the_cliques_yet_to_be_assigned_in_this_source_component.get_next(current_percolation_level, source_component) ); // should never be fed an empty component
+		while( -1 != the_cliques_yet_to_be_assigned_in_this_source_component.get_next(current_percolation_level, source_component) ) { // keep pulling out communities from current source-component
+			// - find a clique that hasn't yet been assigned to a community
+			// - create a new community by:
+			//   - make it the first 'frontier' clique
+			//   - keep adding it, and all its neighbours, to the community until the frontier is empty
 
-		PP2(__LINE__, ELAPSED);
-		const int32_t seed_clique = the_cliques_yet_to_be_assigned_in_this_source_component.get_next(current_percolation_level, source_component);
-		// PP(seed_clique);
-		assert(assigned_branches.get().assigned_branches.at(power_up + seed_clique) == false);
-		assert(the_cliques.at(seed_clique).size() > size_t(t));
+			const int32_t seed_clique = the_cliques_yet_to_be_assigned_in_this_source_component.get_next(current_percolation_level, source_component);
+			// PP(seed_clique);
+			assert(assigned_branches.get().assigned_branches.at(power_up + seed_clique) == false);
+			assert(the_cliques.at(seed_clique).size() > size_t(t));
 
-		stack< int32_t, vector<int32_t> > frontier_cliques;
-		frontier_cliques.push(seed_clique);
-		const int32_t component_to_grow_into = current_percolation_level.create_empty_component();
-		int32_t num_cliques_in_this_community = 0;
+			stack< int32_t, vector<int32_t> > frontier_cliques;
+			frontier_cliques.push(seed_clique);
+			const int32_t component_to_grow_into = current_percolation_level.create_empty_component();
+			int32_t num_cliques_in_this_community = 0;
 
-		current_percolation_level.move_node(seed_clique, component_to_grow_into, source_component);
-		++num_cliques_in_this_community;
-		++ move_count;
+			current_percolation_level.move_node(seed_clique, component_to_grow_into, source_component);
+			++num_cliques_in_this_community;
+			++ move_count;
 
-		PP2(__LINE__, ELAPSED);
-		while(!frontier_cliques.empty()) {
-			PP(frontier_cliques.size());
-			PP2(assigned_branches.get().total_marked, 1048576 - assigned_branches.get().total_marked);
-			const int32_t popped_clique = frontier_cliques.top();
-			frontier_cliques.pop();
+			// PP2(__LINE__, ELAPSED);
+			while(!frontier_cliques.empty()) {
+				// PP(frontier_cliques.size());
+				// PP2(assigned_branches.get().total_marked, 1048576 - assigned_branches.get().total_marked);
+				const int32_t popped_clique = frontier_cliques.top();
+				frontier_cliques.pop();
 
-			assigned_branches.mark_as_done(power_up + popped_clique);
+				assigned_branches.mark_as_done(power_up + popped_clique);
 
-			int32_t searches_performed = 0;
-			vector<int32_t> fresh_frontier_cliques_found;
-			const int32_t current_component_id = current_percolation_level.my_component_id(popped_clique);
-			assert(current_component_id == component_to_grow_into);
-			neighbours_of_one_clique(the_cliques, popped_clique, current_percolation_level, t, component_to_grow_into, source_component, isf, searches_performed, fresh_frontier_cliques_found, assigned_branches);
-			int32_t search_successes = fresh_frontier_cliques_found.size();
-			PP2(search_successes, searches_performed);
-			// const int32_t old_size_of_growing_community = current_percolation_level.get_members(component_to_grow_into).size();
-			for(int x = 0; x < (int)fresh_frontier_cliques_found.size(); x++) {
-				const int32_t frontier_clique_to_be_moved_in = fresh_frontier_cliques_found.at(x);
-				frontier_cliques.push(frontier_clique_to_be_moved_in);
-				assert(source_component == current_percolation_level.my_component_id(frontier_clique_to_be_moved_in));
-				current_percolation_level.move_node(frontier_clique_to_be_moved_in, component_to_grow_into, source_component);
-				++num_cliques_in_this_community;
-				++ move_count;
-				if(move_count % 100 == 0) {
-					PP4(move_count, the_cliques.size(), ELAPSED, found_communities.size());
-					PP(assigned_branches.get().total_marked);
+				int32_t searches_performed = 0;
+				vector<int32_t> fresh_frontier_cliques_found;
+				const int32_t current_component_id = current_percolation_level.my_component_id(popped_clique);
+				assert(current_component_id == component_to_grow_into);
+				neighbours_of_one_clique(the_cliques, popped_clique, current_percolation_level, t, component_to_grow_into, source_component, isf, searches_performed, fresh_frontier_cliques_found, assigned_branches);
+				// int32_t search_successes = fresh_frontier_cliques_found.size();
+				// PP2(search_successes, searches_performed);
+				// const int32_t old_size_of_growing_community = current_percolation_level.get_members(component_to_grow_into).size();
+				for(int x = 0; x < (int)fresh_frontier_cliques_found.size(); x++) {
+					const int32_t frontier_clique_to_be_moved_in = fresh_frontier_cliques_found.at(x);
+					frontier_cliques.push(frontier_clique_to_be_moved_in);
+					assert(source_component == current_percolation_level.my_component_id(frontier_clique_to_be_moved_in));
+					current_percolation_level.move_node(frontier_clique_to_be_moved_in, component_to_grow_into, source_component);
+					++num_cliques_in_this_community;
+					++ move_count;
+					/*
+					if(move_count % 100 == 0) {
+						PP4(move_count, the_cliques.size(), ELAPSED, found_communities.size());
+						PP(assigned_branches.get().total_marked);
+					}
+					*/
 				}
+				// const int32_t new_size_of_growing_community = current_percolation_level.get_members(component_to_grow_into).size();
+				assert(frontier_cliques.size() < the_cliques.size());
 			}
-			// const int32_t new_size_of_growing_community = current_percolation_level.get_members(component_to_grow_into).size();
-			assert(frontier_cliques.size() < the_cliques.size());
+			// const int32_t final_size_of_growing_community = current_percolation_level.get_members(component_to_grow_into).size();
+			// PP2(t+1, final_size_of_growing_community);
+			// PP(calls_to_recursive_search);
+			found_communities.push_back(component_to_grow_into);
+			// PP3(__LINE__, ELAPSED, num_cliques_in_this_community);
 		}
-		// const int32_t final_size_of_growing_community = current_percolation_level.get_members(component_to_grow_into).size();
-		// PP2(t+1, final_size_of_growing_community);
-		// PP(calls_to_recursive_search);
-		found_communities.push_back(component_to_grow_into);
-		PP3(__LINE__, ELAPSED, num_cliques_in_this_community);
-	}
-	PP3(assigned_branches.get().total_marked, the_cliques.size(), move_count);
-} // looping over the source components
+		assert(the_cliques_yet_to_be_assigned_in_this_source_component.size()==0);
+		members_of_the_source_components.pop_back();
+	} // looping over the source components
 }
 
 template<typename T>
@@ -753,21 +768,49 @@ static void write_all_communities_for_this_k(const char * output_dir_name
 
 static void source_components_for_the_next_level ( // maybe this should return new_percolation_level ? via auto_ptr ?
 		vector<int32_t> &source_components
+		, vector<maybe_available>  & members_of_the_source_components
 		,       comp * new_percolation_level
 		, const int32_t new_k
-		, const vector<int32_t> & // found_communities
-		, const comp * // old_percolation_level
+		, const vector<int32_t> & found_communities
+		, const comp * old_percolation_level
 		, const vector<clique> &the_cliques
 		) { // identify candidates for the next level
 	assert(source_components.empty());
-	const int32_t new_cand = new_percolation_level->create_empty_component();
-	int32_t number_of_cliques_found_that_are_suitably_big = 0;
+	assert(members_of_the_source_components.empty());
+	assert(new_percolation_level && new_percolation_level->component_count() == 1); // everything starts off in component 0 - the 'unassigned' component
+
+	const size_t num_sources = found_communities.size();
+
+	// each found community at k becomes a source component at k+1
+
+	map<int32_t, maybe_available> the_cliques_in_each_community;
+	for(size_t f = 0; f < num_sources; f++) {
+		the_cliques_in_each_community[found_communities.at(f)]; // create the relevant entry in the map
+	}
+	assert(the_cliques_in_each_community.size() == num_sources);
 	for(int c=0; c<(int)the_cliques.size(); c++) {
 		if((int)the_cliques.at(c).size() >= new_k) {
-			new_percolation_level->move_node(c, new_cand, 0);
-			++ number_of_cliques_found_that_are_suitably_big;
+			const int32_t comp_id_in_old =  old_percolation_level->my_component_id(c);
+			assert(the_cliques_in_each_community.count(comp_id_in_old));
+			the_cliques_in_each_community[comp_id_in_old].insert(c);
 		}
 	}
-	if(number_of_cliques_found_that_are_suitably_big>0)
-		source_components.push_back(new_cand);
+	assert(the_cliques_in_each_community.size() == num_sources);
+
+	for (map<int32_t, maybe_available> :: const_iterator i = the_cliques_in_each_community.begin()
+		 ; i != the_cliques_in_each_community.end()
+		 ; ++i) {
+		if(i->second.size()>0) { // this is worth passing up to the next level
+			const int32_t new_source = new_percolation_level->create_empty_component();
+			source_components.push_back(new_source);
+			const vector<int32_t> &being_sent_up = i->second.get_all_members();
+			for(size_t j=0; j<being_sent_up.size(); j++) {
+				new_percolation_level->move_node(being_sent_up.at(j), new_source, 0);
+			}
+			members_of_the_source_components.push_back( i->second );
+			// swap(i->second, members_of_the_source_components.back()); // will it efficiently swap the underlying vectors?
+			// assert(i->second.size() == 0);
+		}
+	}
+	assert(source_components.size() == members_of_the_source_components.size());
 }
