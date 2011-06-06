@@ -241,7 +241,7 @@ public:
 		// initialize with the cliques that have at least t members in them.
 		const int32_t C = the_cliques.size();
 		for(int c = 0; c < C; c++) {
-			if(the_cliques.at(c).size() >= size_t(t)) {
+			if(the_cliques.at(c).size() > size_t(t)) {
 				++ num_cliques_in_here;
 				this->add_clique_to_bloom(the_cliques.at(c), c+power_up);
 			}
