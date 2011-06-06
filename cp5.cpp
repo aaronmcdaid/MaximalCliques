@@ -277,7 +277,7 @@ static int32_t actual_overlap(const clique &old_clique, const clique &new_clique
 static int64_t calls_to_recursive_search = 0;
 
 static void recursive_search(const intersecting_clique_finder &search_tree
-		, const int32_t branch_identifier
+		,       int32_t branch_identifier
 		, const int32_t current_clique_id
 		, const int32_t t
 		, const vector<clique> &the_cliques
@@ -288,6 +288,7 @@ static void recursive_search(const intersecting_clique_finder &search_tree
 		, const int32_t source_component_id // the component (i.e. k-1-level community we're pulling from. This is just needed for verification
 		, assigned_branches_t &assigned_branches
 		) {
+restart:
 	++ calls_to_recursive_search;
 	assert(calls_to_recursive_search > 0);
 	// PRECONDITION:
@@ -304,6 +305,23 @@ static void recursive_search(const intersecting_clique_finder &search_tree
 	//     - decide which sub branches, if any, to visit. And decide in what order.
 
 	assert(assigned_branches.assigned_branches.at(branch_identifier) == false);
+	{ //optional optimization. If exactly one subranch is unassigned, then skip directly to it
+		if(branch_identifier < search_tree.power_up) {
+			const int32_t left_subnode_id = branch_identifier << 1;
+			assert(left_subnode_id >= 0);  // just in case the <<1 made it negative
+			const int32_t right_subnode_id = left_subnode_id + 1;
+			if         (assigned_branches.assigned_branches.at(left_subnode_id)
+				&& !assigned_branches.assigned_branches.at(right_subnode_id)) {
+				branch_identifier = right_subnode_id;
+				goto restart; // oh yeah, you're not really optimizing until you have a goto
+			}
+			if         (!assigned_branches.assigned_branches.at(left_subnode_id)
+				&& assigned_branches.assigned_branches.at(right_subnode_id)) {
+				branch_identifier = left_subnode_id;
+				goto restart; // oh yeah, you're not really optimizing until you have a goto
+			}
+		}
+	}
 
 	const clique &current_clique = the_cliques.at(current_clique_id);
 	if(branch_identifier >= search_tree.power_up) { // is a leaf node
