@@ -135,6 +135,7 @@ static string memory_usage() {
 	return mem.str();
 }
 
+static bool global_rebuild_occasionally = false; 
 
 int main(int argc, char **argv) {
 	gengetopt_args_info args_info;
@@ -149,6 +150,8 @@ int main(int argc, char **argv) {
 		exit(1);
 	}
 
+	PP(args_info.rebuild_bloom_flag);
+	global_rebuild_occasionally = args_info.rebuild_bloom_flag;
 	const char * edgeListFileName   = args_info.inputs[0];
 	const char * output_dir_name   = args_info.inputs[1];
 	const int min_k = args_info.k_arg;
@@ -234,7 +237,8 @@ public:
 		}
 	}
 };
-const int64_t bloom :: l = 10000000000;
+const int64_t bloom :: l = 10000000000; // 1.25 GB
+// const int64_t bloom :: l = 40000000000; // 5 GB
 class intersecting_clique_finder { // based on a tree of all cliques, using a bloom filter to cut branch from the search tree
 	bloom bl;
 	int32_t num_cliques_in_here;
@@ -310,8 +314,10 @@ public:
 struct assigned_branches_t : private assigned_branches_t_private_data_members {
 public:
 	int32_t num_valid_leaf_assigns; // this is public, to let us reset when we feel like it.
+	int32_t C2;
 	explicit assigned_branches_t(int32_t p, int32_t C) {
 		this->num_valid_leaf_assigns = 0;
+		this->C2 = 0;
 		this->power_up = p;
 		this->number_of_cliques = C;
 		this->total_marked = 0;
@@ -330,8 +336,18 @@ public:
 		assert(branch_id >= this->power_up);
 		if(this->assigned_branches.at(branch_id) == false) {
 			++ this->num_valid_leaf_assigns;
-			if(this->num_valid_leaf_assigns % 10000 == 0)
-				PP2(this->num_valid_leaf_assigns, ELAPSED);
+			if(this->C2 / 100 > 0) {
+				if(this->num_valid_leaf_assigns % (this->C2 / 100) == 0) {
+					const double percent = 100.0 * this->num_valid_leaf_assigns / this->C2;
+					PP3(this->num_valid_leaf_assigns
+						, ELAPSED
+						, percent
+					);
+				}
+			} else {
+				if(this->num_valid_leaf_assigns % 10000 == 0)
+					PP2(this->num_valid_leaf_assigns, ELAPSED);
+			}
 		}
 		return this->mark_as_done_(branch_id);
 	}
@@ -645,6 +661,7 @@ static void one_k (vector<int32_t> & found_communities
 		}
 	}
 	assigned_branches.num_valid_leaf_assigns = 0;
+	assigned_branches.C2 = C2;
 
 
 	int64_t move_count = 0;
@@ -709,7 +726,7 @@ static void one_k (vector<int32_t> & found_communities
 				// 350 -> 390  = .12
 				// 400 -> 420  = .08
 				// 440 -> 450  = .70
-				if(0){ // rebuild isf?
+				if(global_rebuild_occasionally){ // rebuild isf?
 					const int32_t num_cliques_remaining_in_this_source
 						= num_cliques_in_this_source
 						- (assigned_branches.num_valid_leaf_assigns - num_assigned_at_the_start_of_this_source);
