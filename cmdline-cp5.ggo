@@ -1,6 +1,7 @@
-package "Clique Percolation 5th variant"
+package "cp5"
 version "0.5"
 purpose "Yet another clique percolation algorithm"
+usage "Usage: cp5 [OPTIONS]... edge_list output_directory"
 option  "k"                  k "minimum size of clique, k. Must be at least 3."               int        default="3" no
 option  "K"                  K "max k of interest. default is to do all k.    "               int        default="-1" no
 option  "stringIDs"          - "string IDs in the input"             flag       off

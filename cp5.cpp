@@ -146,7 +146,6 @@ int main(int argc, char **argv) {
 	// .. and there should be exactly one non-option arg
 	if(args_info.inputs_num != 2 || args_info.k_arg < 3) {
 		cmdline_parser_print_help();
-		cerr << endl << " == Need two args: edge_list and output_dir ==" << endl;
 		exit(1);
 	}
 

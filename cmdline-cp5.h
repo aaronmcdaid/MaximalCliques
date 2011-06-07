@@ -21,7 +21,7 @@ extern "C" {
 
 #ifndef CMDLINE_PARSER_PACKAGE
 /** @brief the program name */
-#define CMDLINE_PARSER_PACKAGE "Clique Percolation 5th variant"
+#define CMDLINE_PARSER_PACKAGE "cp5"
 #endif
 
 #ifndef CMDLINE_PARSER_VERSION

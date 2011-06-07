@@ -23,7 +23,7 @@
 
 const char *gengetopt_args_info_purpose = "Yet another clique percolation algorithm";
 
-const char *gengetopt_args_info_usage = "Usage: Clique Percolation 5th variant [OPTIONS]... [FILES]...";
+const char *gengetopt_args_info_usage = "Usage: Usage: cp5 [OPTIONS]... edge_list output_directory";
 
 const char *gengetopt_args_info_description = "";
 
