@@ -179,6 +179,12 @@ int main(int argc, char **argv) {
 	cliques :: cliquesToVector(network.get(), min_k, the_cliques);
 
 	// sort 'em here? By size? lexicographically? Graclus?
+	{ // sort 'em randomly for now
+		const double pre = ELAPSED;
+		std :: random_shuffle(the_cliques.begin(), the_cliques.end());
+		const double post = ELAPSED;
+		PP(post-pre);
+	}
 
 	const int32_t C = the_cliques.size();
 	if(C==0) {
