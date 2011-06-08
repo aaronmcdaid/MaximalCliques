@@ -333,6 +333,7 @@ public:
 	}
 	int32_t mark_as_done(const int32_t branch_id) {
 		assert(branch_id >= this->power_up);
+		assert(this->assigned_branches.at(branch_id) == false);
 		if(this->assigned_branches.at(branch_id) == false) {
 			++ this->num_valid_leaf_assigns;
 			if(this->C2 / 100 > 0) {
@@ -662,7 +663,6 @@ static void one_k (vector<int32_t> & found_communities
 	assigned_branches.num_valid_leaf_assigns = 0;
 	assigned_branches.C2 = C2;
 
-
 	int64_t move_count = 0;
 	assert (!source_components.empty());
 	while (!source_components.empty()) {
@@ -705,6 +705,8 @@ static void one_k (vector<int32_t> & found_communities
 			int32_t num_cliques_in_this_community = 0;
 
 			current_percolation_level.move_node(seed_clique, component_to_grow_into, source_component);
+			assigned_branches.mark_as_done(power_up + seed_clique);
+
 			++num_cliques_in_this_community;
 			++ move_count;
 
@@ -715,8 +717,7 @@ static void one_k (vector<int32_t> & found_communities
 				const int32_t popped_clique = frontier_cliques.top();
 				frontier_cliques.pop();
 
-				assigned_branches.mark_as_done(power_up + popped_clique);
-
+				assert(assigned_branches.get().assigned_branches.at(power_up + popped_clique));
 				int32_t searches_performed = 0;
 				vector<int32_t> fresh_frontier_cliques_found;
 				const int32_t current_component_id = current_percolation_level.my_component_id(popped_clique);
