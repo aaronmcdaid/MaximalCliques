@@ -290,6 +290,21 @@ public:
 		}
 		return potential_overlap;
 	}
+	int32_t overlap_estimate(const clique &new_clique, const int32_t branch_identifier, int32_t t) const {
+		// we're interested *only* in whether the overlap is >= t. We'll short-circuit once the answer is known.
+		int32_t potential_overlap = 0;
+		const size_t sz = new_clique.size();
+		for(size_t n = 0; n < sz; n++) {
+			const int32_t node_id = new_clique.at(n);
+			const int64_t a = (int64_t(branch_identifier) << 32) + node_id;
+			potential_overlap += this->bl.test(a) ? 1 : 0;
+			if(potential_overlap >= t)
+				return t;
+			if(potential_overlap + int32_t(sz - n - 1) < t)
+				return 0;
+		}
+		return potential_overlap;
+	}
 	void add_clique_to_bloom(const clique &new_clique, int32_t branch_identifier) {
 		while(branch_identifier) {
 			for(size_t n = 0; n < new_clique.size(); n++) {
@@ -458,10 +473,10 @@ restart:
 
 		const int32_t potential_overlap_left  =
 			assigned_branches.get().assigned_branches.at(left_subnode_id) ? 0 :
-			search_tree.overlap_estimate(current_clique, left_subnode_id);
+			search_tree.overlap_estimate(current_clique, left_subnode_id, t);
 		const int32_t potential_overlap_right =
 			assigned_branches.get().assigned_branches.at(right_subnode_id) ? 0 :
-			search_tree.overlap_estimate(current_clique, right_subnode_id);
+			search_tree.overlap_estimate(current_clique, right_subnode_id, t);
 		searches_performed += 2; // checked the left and the right
 
 		if(potential_overlap_left >= t)
