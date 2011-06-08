@@ -542,6 +542,14 @@ static void do_clique_percolation_variant_5b(const int32_t min_k, const int32_t 
 	}
 	const int32_t C = the_cliques.size();
 	if(C==1) { // nothing to be done, just one clique. Leave it on its own.
+		// This is handled specially here because otherwise the binary tree would be pretty much non-existant.
+		create_directory_for_output(output_dir_name);
+		vector<int32_t> found_communities;
+		comp current_percolation_level(C);
+		const int32_t singleton_community = current_percolation_level.create_empty_component();
+		current_percolation_level.move_node(0, singleton_community, 0);
+		found_communities.push_back(singleton_community);
+		write_all_communities_for_this_k(output_dir_name, min_k, found_communities, current_percolation_level, the_cliques, network);
 		return;
 	}
 
