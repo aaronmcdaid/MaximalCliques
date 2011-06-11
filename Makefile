@@ -1,3 +1,4 @@
+SHELL=bash
 .PHONY: gitstatus.txt help clean
 BITS=
 CC=g++
@@ -34,7 +35,7 @@ CXXFLAGS= ${BITS}      ${CFLAGS} # -DNDEBUG
 #CXXFLAGS=              -O2                 
 
 justTheCliques: justTheCliques.o cliques.o graph/weights.o graph/loading.o graph/network.o graph/saving.o graph/graph.o graph/bloom.o graph/stats.o cmdline.o
-cp5:            cp5.o            cliques.o graph/weights.o graph/loading.o graph/network.o graph/saving.o graph/graph.o graph/bloom.o graph/stats.o cmdline-cp5.o clustering/components.o
+cp5:            cp5.o comments.o cliques.o graph/weights.o graph/loading.o graph/network.o graph/saving.o graph/graph.o graph/bloom.o graph/stats.o cmdline-cp5.o clustering/components.o
 
 
 
@@ -49,3 +50,15 @@ cmdline-cp5.c.FORCE:
 	gengetopt  --unamed-opts -F cmdline-cp5 < cmdline-cp5.ggo
 cmdline-cp5.o: cmdline-cp5.c
 	gcc -Wall cmdline-cp5.c -o cmdline-cp5.o -c
+
+comments.o: comments.cc.FORCE
+
+comments.cc.FORCE:
+	echo '#include "comments.hh"' > comments.cc
+	echo "const char commentSlashes[] =" >> comments.cc
+	echo -n '"///git: ' >> comments.cc
+	{ git log || echo commit "??????"; } | egrep commit | head -n1 | cut -b8-13 | tr -d '\n'  >> comments.cc
+	echo '" "\n"' >> comments.cc
+	egrep /// *.?pp -h | sed -re 's/.*(\/\/\/.*)$$/"\1" "\\n"/' >> comments.cc
+	echo ";" >> comments.cc
+

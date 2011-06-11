@@ -44,6 +44,8 @@ struct gengetopt_args_info
   const char *stringIDs_help; /**< @brief string IDs in the input help description.  */
   int rebuild_bloom_flag;	/**< @brief rebuild bloom filter occasionally (default=off).  */
   const char *rebuild_bloom_help; /**< @brief rebuild bloom filter occasionally help description.  */
+  int comments_flag;	/**< @brief detailed version description (default=off).  */
+  const char *comments_help; /**< @brief detailed version description help description.  */
   
   unsigned int help_given ;	/**< @brief Whether help was given.  */
   unsigned int version_given ;	/**< @brief Whether version was given.  */
@@ -51,6 +53,7 @@ struct gengetopt_args_info
   unsigned int K_given ;	/**< @brief Whether K was given.  */
   unsigned int stringIDs_given ;	/**< @brief Whether stringIDs was given.  */
   unsigned int rebuild_bloom_given ;	/**< @brief Whether rebuild.bloom was given.  */
+  unsigned int comments_given ;	/**< @brief Whether comments was given.  */
 
   char **inputs ; /**< @brief unamed options (options without names) */
   unsigned inputs_num ; /**< @brief unamed options number */

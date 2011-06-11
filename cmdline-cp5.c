@@ -34,6 +34,7 @@ const char *gengetopt_args_info_help[] = {
   "  -K, --K=INT          max k of interest. default is to do all k.      \n                         (default=`-1')",
   "      --stringIDs      string IDs in the input  (default=off)",
   "      --rebuild.bloom  rebuild bloom filter occasionally  (default=off)",
+  "      --comments       detailed version description  (default=off)",
     0
 };
 
@@ -64,6 +65,7 @@ void clear_given (struct gengetopt_args_info *args_info)
   args_info->K_given = 0 ;
   args_info->stringIDs_given = 0 ;
   args_info->rebuild_bloom_given = 0 ;
+  args_info->comments_given = 0 ;
 }
 
 static
@@ -75,6 +77,7 @@ void clear_args (struct gengetopt_args_info *args_info)
   args_info->K_orig = NULL;
   args_info->stringIDs_flag = 0;
   args_info->rebuild_bloom_flag = 0;
+  args_info->comments_flag = 0;
   
 }
 
@@ -89,6 +92,7 @@ void init_args_info(struct gengetopt_args_info *args_info)
   args_info->K_help = gengetopt_args_info_help[3] ;
   args_info->stringIDs_help = gengetopt_args_info_help[4] ;
   args_info->rebuild_bloom_help = gengetopt_args_info_help[5] ;
+  args_info->comments_help = gengetopt_args_info_help[6] ;
   
 }
 
@@ -218,6 +222,8 @@ cmdline_parser_dump(FILE *outfile, struct gengetopt_args_info *args_info)
     write_into_file(outfile, "stringIDs", 0, 0 );
   if (args_info->rebuild_bloom_given)
     write_into_file(outfile, "rebuild.bloom", 0, 0 );
+  if (args_info->comments_given)
+    write_into_file(outfile, "comments", 0, 0 );
   
 
   i = EXIT_SUCCESS;
@@ -463,6 +469,7 @@ cmdline_parser_internal (int argc, char * const *argv, struct gengetopt_args_inf
         { "K",	1, NULL, 'K' },
         { "stringIDs",	0, NULL, 0 },
         { "rebuild.bloom",	0, NULL, 0 },
+        { "comments",	0, NULL, 0 },
         { NULL,	0, NULL, 0 }
       };
 
@@ -528,6 +535,18 @@ cmdline_parser_internal (int argc, char * const *argv, struct gengetopt_args_inf
             if (update_arg((void *)&(args_info->rebuild_bloom_flag), 0, &(args_info->rebuild_bloom_given),
                 &(local_args_info.rebuild_bloom_given), optarg, 0, 0, ARG_FLAG,
                 check_ambiguity, override, 1, 0, "rebuild.bloom", '-',
+                additional_error))
+              goto failure;
+          
+          }
+          /* detailed version description.  */
+          else if (strcmp (long_options[option_index].name, "comments") == 0)
+          {
+          
+          
+            if (update_arg((void *)&(args_info->comments_flag), 0, &(args_info->comments_given),
+                &(local_args_info.comments_given), optarg, 0, 0, ARG_FLAG,
+                check_ambiguity, override, 1, 0, "comments", '-',
                 additional_error))
               goto failure;
           

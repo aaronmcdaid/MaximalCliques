@@ -4,6 +4,7 @@
 #include "macros.hpp"
 #include "cliques.hpp"
 #include "cmdline-cp5.h"
+#include "comments.hh"
 
 #include <vector>
 #include <tr1/unordered_set>
@@ -149,6 +150,8 @@ int main(int argc, char **argv) {
 		exit(1);
 	}
 
+	if(args_info.comments_flag)
+		cout << commentSlashes;
 	PP(args_info.rebuild_bloom_flag);
 	global_rebuild_occasionally = args_info.rebuild_bloom_flag;
 	const char * edgeListFileName   = args_info.inputs[0];
@@ -236,7 +239,7 @@ public:
 		}
 	}
 };
-const int64_t bloom :: l = 10000000000; // 1.25 GB
+const int64_t bloom :: l = 10000000000; /// 1.25 GB
 // const int64_t bloom :: l = 40000000000; // 5 GB
 class intersecting_clique_finder { // based on a tree of all cliques, using a bloom filter to cut branch from the search tree
 	bloom bl;
