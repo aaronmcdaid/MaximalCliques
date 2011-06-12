@@ -55,11 +55,11 @@ comments.o: comments.cc.FORCE
 	g++ -c comments.cc -o comments.o
 
 comments.cc.FORCE:
-	echo '#include "comments.hh"' > comments.cc
-	echo "const char commentSlashes[] =" >> comments.cc
-	echo -n '"///git: ' >> comments.cc
-	{ git log || echo commit "??????"; } | egrep commit | head -n1 | cut -b8-13 | tr -d '\n'  >> comments.cc
-	echo '" "\n"' >> comments.cc
-	egrep /// *.?pp -h | sed -re 's/.*(\/\/\/.*)$$/"\1" "\\n"/' >> comments.cc
-	echo ";" >> comments.cc
+	@echo '#include "comments.hh"' > comments.cc
+	@echo "const char commentSlashes[] =" >> comments.cc
+	@echo -n '"/''//git: ' >> comments.cc
+	@{ git log || echo commit "??????"; } | egrep commit | head -n1 | cut -b8-13 | tr -d '\n'  >> comments.cc
+	@echo '" "\n"' >> comments.cc
+	@egrep '/'// *.?pp Makefile -h | sed -re 's/.*(\/\/\/.*)$$/"\1" "\\n"/' >> comments.cc
+	@echo ";" >> comments.cc
 
