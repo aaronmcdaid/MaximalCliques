@@ -285,6 +285,7 @@ public:
 	}
 	const bloom & get_bloom_filter(void) const { return this->bl; }
 	int32_t overlap_estimate(const clique &new_clique, const int32_t branch_identifier) const {
+		assert(branch_identifier > 1); // never call this on the root node, it hasn't been populated
 		int32_t potential_overlap = 0;
 		for(size_t n = 0; n < new_clique.size(); n++) {
 			const int32_t node_id = new_clique.at(n);
@@ -294,6 +295,7 @@ public:
 		return potential_overlap;
 	}
 	int32_t overlap_estimate(const clique &new_clique, const int32_t branch_identifier, int32_t t) const {
+		assert(branch_identifier > 1); // never call this on the root node, it hasn't been populated
 		// we're interested *only* in whether the overlap is >= t. We'll short-circuit once the answer is known.
 		int32_t potential_overlap = 0;
 		const size_t sz = new_clique.size();
@@ -309,7 +311,7 @@ public:
 		return potential_overlap;
 	}
 	void add_clique_to_bloom(const clique &new_clique, int32_t branch_identifier) {
-		while(branch_identifier) {
+		while(branch_identifier > 1) { // we shouldn't bother populating the root node
 			for(size_t n = 0; n < new_clique.size(); n++) {
 				const int32_t node_id = new_clique.at(n);
 				const int64_t a = (int64_t(branch_identifier) << 32) + node_id;
@@ -449,12 +451,14 @@ restart:
 
 	// time to check potential_overlap
 	const clique &current_clique = the_cliques.at(current_clique_id);
-	const int32_t potential_overlap = search_tree.overlap_estimate(current_clique, branch_identifier, t);
-	if(potential_overlap < t) {
-		assert(potential_overlap == 0);
-		return;
-	} else
-		assert(potential_overlap == t);
+	if(branch_identifier > 1) { // remember, the isf isn't populated at the root node
+		const int32_t potential_overlap = search_tree.overlap_estimate(current_clique, branch_identifier, t);
+		if(potential_overlap < t) {
+			assert(potential_overlap == 0);
+			return;
+		} else
+			assert(potential_overlap == t);
+	}
 
 
 	// if we made it this far, we must do one of two things
@@ -525,7 +529,7 @@ static void neighbours_of_one_clique(const vector<clique> &the_cliques
 	//    - the list of cliques adjacent to the clique (at least t nodes in common),
 	//    - BUT without the cliques that are already in the current component
 		assert(current_component_id == components.my_component_id(current_clique_id));
-		const int32_t root_node = 1;
+		const int32_t root_node = 1; // if C==1, then this is also the only leaf node
 		if(assigned_branches.get().assigned_branches.at(root_node) == false) // otherwise, we've assigned everything and the algorithm can complete
 			recursive_search(search_tree
 				, root_node
@@ -560,20 +564,9 @@ static void do_clique_percolation_variant_5b(const int32_t min_k, const int32_t 
 		throw too_many_cliques_exception();
 	}
 	const int32_t C = the_cliques.size();
-	if(C==1) { // nothing to be done, just one clique. Leave it on its own.
-		// This is handled specially here because otherwise the binary tree would be pretty much non-existant.
-		create_directory_for_output(output_dir_name);
-		vector<int32_t> found_communities;
-		comp current_percolation_level(C);
-		const int32_t singleton_community = current_percolation_level.create_empty_component();
-		current_percolation_level.move_node(0, singleton_community, 0);
-		found_communities.push_back(singleton_community);
-		write_all_communities_for_this_k(output_dir_name, min_k, found_communities, current_percolation_level, the_cliques, network);
-		return;
-	}
 
 	PP4(C, min_k, max_k, max_k_to_percolate);
-	assert(min_k > 0 && min_k <= max_k && C > 1);
+	assert(min_k > 0 && min_k <= max_k && C >= 1);
 
 	int32_t power_up = 1; // this is to be the smallest power of 2 greater than, or equal to, the number of cliques
 	while(power_up < C)
@@ -737,7 +730,6 @@ static void one_k (vector<int32_t> & found_communities
 			//   - keep adding it, and all its neighbours, to the community until the frontier is empty
 
 			const int32_t seed_clique = the_cliques_yet_to_be_assigned_in_this_source_component.get_next(current_percolation_level, source_component);
-			// PP(seed_clique);
 			assert(assigned_branches.get().assigned_branches.at(power_up + seed_clique) == false);
 			assert(the_cliques.at(seed_clique).size() > size_t(t));
 
