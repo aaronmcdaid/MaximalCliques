@@ -52,6 +52,7 @@ cmdline-cp5.o: cmdline-cp5.c
 	gcc -Wall cmdline-cp5.c -o cmdline-cp5.o -c
 
 comments.o: comments.cc.FORCE
+	g++ -c comments.cc -o comments.o
 
 comments.cc.FORCE:
 	echo '#include "comments.hh"' > comments.cc
