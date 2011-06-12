@@ -403,25 +403,33 @@ static void recursive_search(const intersecting_clique_finder &search_tree
 		, const int32_t component_already_in // i.e. the community we're merging into now
 		, const int32_t source_component_id // the component (i.e. k-1-level community we're pulling from. This is just needed for verification
 		, assigned_branches_t &assigned_branches
-		) {
+		) { /// new recursive_search
 restart:
 	++ calls_to_recursive_search;
 	assert(calls_to_recursive_search > 0);
 	// PRECONDITION:
-	//    - we assume that the current branch in the tree already has enough nodes, according to isf and assigned_branches
+	//    - we NO LONGER assume that the current branch in the tree already has enough nodes, according to isf and assigned_branches
 	//
 	// is this a leaf node?
 	//   - if at a leaf node
 	//     - is it a valid clique (i.e. leaf_node_id < the_cliques.size()?
-	//       - if so, ignore it
-	//       - if not:
+	//       - if not, ignore it
+	//       - if so:
 	//         - is it already in the community we're forming? if so, ignore it (but count it)
 	//         - perform the validation. (actual_overlap)
 	//   - if not at a leaf
 	//     - decide which sub branches, if any, to visit. And decide in what order.
 
+	if(assigned_branches.get().assigned_branches.at(branch_identifier) == true) {
+		return; // this clique is no longer available
+	}
+	if(branch_identifier >= search_tree.power_up) { // is a leaf node, but might be invalid
+		const int32_t leaf_clique_id = branch_identifier - search_tree.power_up;
+		assert(size_t(leaf_clique_id) < the_cliques.size()); // the invalid leaves should be marked assigned already
+	}
+
 	assert(assigned_branches.get().assigned_branches.at(branch_identifier) == false);
-	{ //optional optimization. If exactly one subranch is unassigned, then skip directly to it
+	{ //optional optimization. If exactly one subbranch is unassigned, then skip directly to it
 		if(branch_identifier < search_tree.power_up) {
 			const int32_t left_subnode_id = branch_identifier << 1;
 			assert(left_subnode_id >= 0);  // just in case the <<1 made it negative
@@ -439,53 +447,61 @@ restart:
 		}
 	}
 
+	// time to check potential_overlap
 	const clique &current_clique = the_cliques.at(current_clique_id);
+	const int32_t potential_overlap = search_tree.overlap_estimate(current_clique, branch_identifier, t);
+	if(potential_overlap < t) {
+		assert(potential_overlap == 0);
+		return;
+	} else
+		assert(potential_overlap == t);
+
+
+	// if we made it this far, we must do one of two things
+	// - if a leaf node (assert that it is a valid leaf)
+	//   - then we check the actual overlap
+	// - if not a leaf node
+	//   - recursively search both child nodes
+
 	if(branch_identifier >= search_tree.power_up) { // is a leaf node
 		const int32_t leaf_clique_id = branch_identifier - search_tree.power_up;
-		assert(leaf_clique_id >= 0); // remember, this leaf mightn't really represent a clique (i.e. leaf_clique_id >= the_cliques.size()) 
-		if(size_t(leaf_clique_id) >= the_cliques.size()) { // I'm pretty sure this'll never happen, because the assigned_branches will already have marked these as invalid
-			// PP2(leaf_clique_id, the_cliques.size()); // TODO: get out of branches earlier
-		} else {
+		assert(leaf_clique_id >= 0);
+		assert(size_t(leaf_clique_id) < the_cliques.size());
+		assert(leaf_clique_id != current_clique_id);
+		{
 			const int32_t component_id_of_leaf = current_percolation_level->my_component_id(leaf_clique_id);
-			if(component_id_of_leaf == component_already_in) {
-				// We should never come in here either, as it's already in assigned_branches
-				assert(1 == 2);
-			} else if (component_id_of_leaf != source_component_id) {
+			assert(component_id_of_leaf != component_already_in);
+			if (component_id_of_leaf != source_component_id) {
 				/* this leaf is in a different source component
-				 * hence, we can ignore it
-				 * .. but if we had a different bloom for each source, this wouldn't happen
-				 */
-			} else {
-				// time to check if this clique really does have a big enough overlap
-				assert(component_id_of_leaf == source_component_id);
-				assert(size_t(leaf_clique_id) < the_cliques.size());
-				const int32_t actual = actual_overlap(the_cliques.at(leaf_clique_id), current_clique) ;
-				assert(leaf_clique_id != current_clique_id);
-				assert(actual < (int32_t)current_clique.size()); // don't allow it to match with itself, did you forget to include the seed into the community?
-				if(actual >= t) {
-					assert(leaf_clique_id >= 0 && size_t(leaf_clique_id) < the_cliques.size());
-					cliques_found.push_back(leaf_clique_id);
-					assigned_branches.mark_as_done(branch_identifier); // this is *critical* for speed (if not accuracy). it stops it checking frontier<>frontier links. Really should consider a DFS now!
-				}
+				* hence, we can ignore it
+				* .. this is unlikely (impossible?) to happen, now there's a different
+				* bloom for each source component.
+				*/
+				return; // not in the current source component
 			}
+			// time to check if this clique really does have a big enough overlap
+			assert(component_id_of_leaf == source_component_id);
+		}
+		const int32_t actual = actual_overlap(the_cliques.at(leaf_clique_id), current_clique) ;
+		assert(actual < (int32_t)current_clique.size()); // we never allow it to test for a match with itself, did you forget to include the seed into the community?
+		if(actual >= t) {
+			cliques_found.push_back(leaf_clique_id);
+			assigned_branches.mark_as_done(branch_identifier); // this is *critical* for speed (if not accuracy). it stops it checking frontier<>frontier links.
 		}
 	} else { // not a leaf node. check subbranches
 		const int32_t left_subnode_id = branch_identifier << 1;
 		assert(left_subnode_id >= 0);  // just in case the <<1 made it negative
 		const int32_t right_subnode_id = left_subnode_id + 1;
+		assert(right_subnode_id <= 2* search_tree.power_up);
 
-		const int32_t potential_overlap_left  =
-			assigned_branches.get().assigned_branches.at(left_subnode_id) ? 0 :
-			search_tree.overlap_estimate(current_clique, left_subnode_id, t);
-		const int32_t potential_overlap_right =
-			assigned_branches.get().assigned_branches.at(right_subnode_id) ? 0 :
-			search_tree.overlap_estimate(current_clique, right_subnode_id, t);
-		searches_performed += 2; // checked the left and the right
-
-		if(potential_overlap_left >= t)
-			recursive_search(search_tree, left_subnode_id, current_clique_id, t, the_cliques, searches_performed, cliques_found, current_percolation_level, component_already_in, source_component_id, assigned_branches);
-		if(potential_overlap_right >= t)
-			recursive_search(search_tree, right_subnode_id, current_clique_id, t, the_cliques, searches_performed, cliques_found, current_percolation_level, component_already_in, source_component_id, assigned_branches);
+		recursive_search(search_tree, left_subnode_id, current_clique_id
+				, t, the_cliques, searches_performed, cliques_found
+				, current_percolation_level, component_already_in
+				, source_component_id, assigned_branches);
+		recursive_search(search_tree, right_subnode_id, current_clique_id
+				, t, the_cliques, searches_performed, cliques_found
+				, current_percolation_level, component_already_in
+				, source_component_id, assigned_branches);
 	}
 }
 
