@@ -356,18 +356,6 @@ public:
 		assert(this->assigned_branches.at(branch_id) == false);
 		if(this->assigned_branches.at(branch_id) == false) {
 			++ this->num_valid_leaf_assigns;
-			if(this->C2 / 100 > 0) {
-				if(this->num_valid_leaf_assigns % (this->C2 / 100) == 0) {
-					const double percent = 100.0 * this->num_valid_leaf_assigns / this->C2;
-					PP3(this->num_valid_leaf_assigns
-						, ELAPSED
-						, percent
-					);
-				}
-			} else {
-				if(this->num_valid_leaf_assigns % 10000 == 0)
-					PP2(this->num_valid_leaf_assigns, ELAPSED);
-			}
 		}
 		return this->mark_as_done_(branch_id);
 	}
@@ -700,6 +688,9 @@ static void one_k (vector<int32_t> & found_communities
 
 	int64_t move_count = 0;
 	assert (!source_components.empty());
+	int num_cliques_fully_processed = 0; /// num_cliques_fully_processed
+	const double time_at_start_of_one_k = ELAPSED;
+	int integral_time_already_printed = 0;
 	while (!source_components.empty()) {
 		const int32_t num_assigned_at_the_start_of_this_source = assigned_branches.num_valid_leaf_assigns;
 		/* ie.  assigned_branches.num_valid_leaf_assigns - num_assigned_at_the_start_of_this_source
@@ -741,7 +732,7 @@ static void one_k (vector<int32_t> & found_communities
 			current_percolation_level.move_node(seed_clique, component_to_grow_into, source_component);
 			assigned_branches.mark_as_done(power_up + seed_clique);
 
-			++num_cliques_in_this_community;
+			++ num_cliques_in_this_community;
 			++ move_count;
 
 			// PP2(__LINE__, ELAPSED);
@@ -796,6 +787,23 @@ static void one_k (vector<int32_t> & found_communities
 				}
 				// const int32_t new_size_of_growing_community = current_percolation_level.get_members(component_to_grow_into).size();
 				assert(frontier_cliques.size() < the_cliques.size());
+				{
+					++num_cliques_fully_processed;
+					const double time_now = ELAPSED;
+					const int integral_seconds_since_start_of_one_k = time_now - time_at_start_of_one_k;
+					if(integral_seconds_since_start_of_one_k > integral_time_already_printed)
+					// if(100 * num_cliques_fully_processed / C2 > 100 * (num_cliques_fully_processed-1) / C2)
+					{
+						integral_time_already_printed = integral_seconds_since_start_of_one_k;
+						const double percent = 100.0 * num_cliques_fully_processed / C2;
+						cout << "#frontier, #fully processed, ELAPSED, %processed:"
+							<< '\t' << thou(frontier_cliques.size())
+							<< '\t' << thou(num_cliques_fully_processed)
+							<< '\t' << thou(ELAPSED) << 's'
+							<< ' ' << percent << " %"
+							<< endl;
+					}
+				}
 			}
 			// const int32_t final_size_of_growing_community = current_percolation_level.get_members(component_to_grow_into).size();
 			// PP2(t+1, final_size_of_growing_community);
@@ -807,8 +815,10 @@ static void one_k (vector<int32_t> & found_communities
 		assert(the_cliques_yet_to_be_assigned_in_this_source_component.size()==0);
 		members_of_the_source_components.pop_back();
 	} // looping over the source components
+	PP2(t+1, ELAPSED - time_at_start_of_one_k); /// time for one_k of searching
 	PP2(C2, assigned_branches.num_valid_leaf_assigns);
 	assert(C2 == assigned_branches.num_valid_leaf_assigns);
+	assert(C2 == num_cliques_fully_processed);
 }
 
 template<typename T>
