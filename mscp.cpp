@@ -100,11 +100,10 @@ string thou(T number) {
 }
 
 
-static void readyToTryOneNode(vector<int32_t> &, const set<int32_t> &cands, const graph :: VerySimpleGraphInterface * vsg, const int32_t k);
+static void readyToTryOneNode(vector<int32_t> &, const vector<int32_t> &cands, const graph :: VerySimpleGraphInterface * vsg, const int32_t k);
 
 static void nonMaxCliques(const graph :: VerySimpleGraphInterface *vsg, const int32_t k) {
 	const int32_t N = vsg->numNodes();
-	PP2(N, k);
 	for(int32_t n=0; n<N; n++) {
 		/* try cliques around every node, using its *lower-degree* neighbours as candidates.
 		 * if same degree, keep higher-id nodes
@@ -112,10 +111,9 @@ static void nonMaxCliques(const graph :: VerySimpleGraphInterface *vsg, const in
 		const int32_t degree_of_n = vsg->degree(n);
 		if(degree_of_n < k)
 			continue;
-		cout << endl; PP(n);
 		vector<int32_t> clique;
 		clique.push_back(n);
-		set<int32_t> candidate_nodes;
+		vector<int32_t> candidate_nodes;
 		const std :: vector<int32_t> &neighs = vsg -> neighbouring_nodes_in_order(n);
 		For(neigh, neighs) {
 			assert(*neigh != n);
@@ -126,31 +124,66 @@ static void nonMaxCliques(const graph :: VerySimpleGraphInterface *vsg, const in
 				continue;
 			if(degree_of_neighbour == degree_of_n && *neigh < n)
 				continue;
-			candidate_nodes.insert(*neigh);
+			candidate_nodes.push_back(*neigh);
 		}
 		if(1 + candidate_nodes.size() < (size_t)k)
 			continue;
-		PP3(n, degree_of_n, candidate_nodes.size());
 		readyToTryOneNode(clique, candidate_nodes, vsg, k);
 	}
 }
 
-static void readyToTryOneNode(vector<int32_t> &clique, const set<int32_t> &cands, const graph :: VerySimpleGraphInterface * vsg, const int32_t ) {
-	assert(clique.size() == 1);
-	/* currently all the cands values are zero. We gotta populate them correctly
-	 * before getting into the clique-finding proper
-	 */
-	std :: tr1 :: unordered_map<int32_t, int32_t> cand_internal_degrees;
-	For(cand, cands) {
-		// for each candidate, how many other candidates does it connect to ?
-		const std :: vector<int32_t> &neighs_of_this_cand = vsg -> neighbouring_nodes_in_order(*cand);
-		vector<int32_t> neighs_in_cand;
-		set_intersection ( neighs_of_this_cand.begin(), neighs_of_this_cand.end()
-				, cands.begin(), cands.end()
-				, back_inserter(neighs_in_cand)
-				);
-		cand_internal_degrees.insert(make_pair(*cand, neighs_in_cand.size()));
+static void find_cliques(vector<int32_t> &clique
+		, vector<int32_t> cands
+		, const graph :: VerySimpleGraphInterface * vsg
+		, const int32_t k);
+
+static void move_node_in( vector<int32_t> &clique
+		, const vector<int32_t> &cands
+		, const graph :: VerySimpleGraphInterface * vsg
+		, const int32_t k
+		, const int32_t node_to_move_in
+		) {
+	clique.push_back(node_to_move_in);
+	// delete nodes from cands unless they are connected to node_to_move_in
+	const std :: vector<int32_t> &neighs = vsg -> neighbouring_nodes_in_order(node_to_move_in);
+	vector<int32_t> new_cands;
+	set_intersection (cands.begin(), cands.end()
+			, neighs.begin(), neighs.end()
+			, back_inserter(new_cands)
+			);
+	find_cliques(clique, new_cands, vsg, k);
+	clique.pop_back();
+}
+
+
+static void find_cliques(vector<int32_t> &clique
+		, vector<int32_t> cands
+		, const graph :: VerySimpleGraphInterface * vsg
+		, const int32_t k) {
+	if(clique.size() == (size_t)k) {
+		For(clique_node, clique) {
+			cerr << *clique_node << " ";
+		}
+		cerr << endl;
+		return;
 	}
-	assert(cand_internal_degrees.size() == cands.size());
-	PP2(clique.front(), cand_internal_degrees.size());
+	assert(clique.size() < (size_t)k);
+	if(clique.size() + cands.size() < (size_t)k) // to few candidates left
+		return;
+
+	while(! cands.empty()) {
+		const int32_t arbitrary_next_node_to_eject = cands.back();
+
+		/* this is the main bit of the algorithm,
+		 * we must try find_cliques twice: once with, and once without, the arbitrary node
+		 */
+		move_node_in(clique, cands, vsg, k, arbitrary_next_node_to_eject);
+
+		cands.pop_back(); // remove arbitrary_next_node_to_eject from cands
+	}
+}
+
+static void readyToTryOneNode(vector<int32_t> &clique, const vector<int32_t> &cands, const graph :: VerySimpleGraphInterface * vsg, const int32_t k) {
+	assert(clique.size()==1);
+	find_cliques(clique, cands, vsg, k);
 }
