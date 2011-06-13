@@ -36,7 +36,7 @@ CXXFLAGS= ${BITS}      ${CFLAGS} # -DNDEBUG
 
 justTheCliques: justTheCliques.o cliques.o graph/weights.o graph/loading.o graph/network.o graph/saving.o graph/graph.o graph/bloom.o graph/stats.o cmdline.o
 cp5:            cp5.o comments.o cliques.o graph/weights.o graph/loading.o graph/network.o graph/saving.o graph/graph.o graph/bloom.o graph/stats.o cmdline-cp5.o clustering/components.o
-mscp:            mscp.o comments.o      graph/weights.o graph/loading.o graph/network.o graph/saving.o graph/graph.o graph/bloom.o graph/stats.o cmdline-mscp.o
+mscp:            mscp.o comments.o      graph/weights.o graph/loading.o graph/network.o                graph/graph.o graph/bloom.o graph/stats.o cmdline-mscp.o
 
 
 
