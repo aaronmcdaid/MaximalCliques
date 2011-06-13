@@ -211,7 +211,7 @@ int main(int argc, char **argv) {
 
 #define BLOOM_BITS 10000000000 /// 1.25 GB
 class bloom { // http://en.wikipedia.org/wiki/Bloom_filter
-	vector<bool> data;
+	std :: auto_ptr<bitset<BLOOM_BITS> > data;
 public: // make private
 	static const int64_t l;
 	int64_t occupied;
@@ -219,23 +219,22 @@ public: // make private
 	std :: tr1 :: hash<int64_t> h;
 public:
 	void clear() {
-		this->data.clear();
-		this->data.resize(this->l);
+		this->data->reset();
 		this->occupied = 0;
 		this->calls_to_set = 0;
 	}
-	bloom() {  // 10 giga-bits 1.25 GB
+	bloom() : data(new bitset<BLOOM_BITS>) {
 		this->clear();
 	}
 	bool test(const int64_t a) const {
 		const int64_t b = h(a) % l;
-		return this->data.at(b);
+		return this->data->test(b);
 	}
 	void set(const int64_t a)  {
 		++ this->calls_to_set;
 		const int64_t b = h(a) % l;
-		bool pre = this->data.at(b);
-		this->data.at(b) = true;
+		bool pre = this->data->test(b);
+		this->data->set(b);
 		if(!pre) {
 			++ this->occupied;
 		}
