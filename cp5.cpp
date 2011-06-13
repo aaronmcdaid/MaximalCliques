@@ -392,25 +392,11 @@ struct args_to_recursive_search { // many of the args never change. May aswell j
 	const int32_t source_component_id; // the component (i.e. k-1-level community we're pulling from. This is just needed for verification
 };
 static void recursive_search(
-		int32_t branch_identifier
+		const int32_t branch_identifier
 		, const args_to_recursive_search &args
 		, vector<int32_t> &cliques_found
 		, assigned_branches_t &assigned_branches
 		) { /// args_to_ new recursive_search
-restart:
-	// PRECONDITION:
-	//    - we NO LONGER assume that the current branch in the tree already has enough nodes, according to isf and assigned_branches
-	//
-	// is this a leaf node?
-	//   - if at a leaf node
-	//     - is it a valid clique (i.e. leaf_node_id < the_cliques.size()?
-	//       - if not, ignore it
-	//       - if so:
-	//         - is it already in the community we're forming? if so, ignore it (but count it)
-	//         - perform the validation. (actual_overlap)
-	//   - if not at a leaf
-	//     - decide which sub branches, if any, to visit. And decide in what order.
-
 	if(assigned_branches.get().assigned_branches.at(branch_identifier) == true) {
 		return; // this clique is no longer available
 	}
@@ -427,13 +413,21 @@ restart:
 			const int32_t right_subnode_id = left_subnode_id + 1;
 			if         (assigned_branches.get().assigned_branches.at(left_subnode_id)
 				&& !assigned_branches.get().assigned_branches.at(right_subnode_id)) {
-				branch_identifier = right_subnode_id;
-				goto restart; // oh yeah, you're not really optimizing until you have a goto
+				return recursive_search(
+						right_subnode_id
+						, args
+						, cliques_found
+						, assigned_branches
+						);
 			}
 			if         (!assigned_branches.get().assigned_branches.at(left_subnode_id)
 				&& assigned_branches.get().assigned_branches.at(right_subnode_id)) {
-				branch_identifier = left_subnode_id;
-				goto restart; // oh yeah, you're not really optimizing until you have a goto
+				return recursive_search(
+						left_subnode_id
+						, args
+						, cliques_found
+						, assigned_branches
+						);
 			}
 		}
 	}
