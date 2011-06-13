@@ -100,34 +100,43 @@ string thou(T number) {
 }
 
 
-static void readyToTryOneNode(vector<int32_t> &clique, const set<int32_t> &cands, const graph :: VerySimpleGraphInterface * vsg);
+static void readyToTryOneNode(vector<int32_t> &, const set<int32_t> &cands, const graph :: VerySimpleGraphInterface * vsg, const int32_t k);
 
 static void nonMaxCliques(const graph :: VerySimpleGraphInterface *vsg, const int32_t k) {
 	const int32_t N = vsg->numNodes();
 	PP2(N, k);
 	for(int32_t n=0; n<N; n++) {
-		// try cliques around every node, using its *lower-degree* neighbours as candidates
+		/* try cliques around every node, using its *lower-degree* neighbours as candidates.
+		 * if same degree, keep higher-id nodes
+		 */
 		const int32_t degree_of_n = vsg->degree(n);
 		if(degree_of_n < k)
 			continue;
+		cout << endl; PP(n);
 		vector<int32_t> clique;
 		clique.push_back(n);
 		set<int32_t> candidate_nodes;
 		const std :: vector<int32_t> &neighs = vsg -> neighbouring_nodes_in_order(n);
 		For(neigh, neighs) {
+			assert(*neigh != n);
 			const int32_t degree_of_neighbour = vsg->degree(*neigh);
 			if(degree_of_neighbour < k)
+				continue;
+			if(degree_of_neighbour > degree_of_n)
+				continue;
+			if(degree_of_neighbour == degree_of_n && *neigh < n)
 				continue;
 			candidate_nodes.insert(*neigh);
 		}
 		if(1 + candidate_nodes.size() < (size_t)k)
 			continue;
 		PP3(n, degree_of_n, candidate_nodes.size());
-		readyToTryOneNode(clique, candidate_nodes, vsg);
+		readyToTryOneNode(clique, candidate_nodes, vsg, k);
 	}
 }
 
-static void readyToTryOneNode(vector<int32_t> &, const set<int32_t> &cands, const graph :: VerySimpleGraphInterface * vsg) {
+static void readyToTryOneNode(vector<int32_t> &clique, const set<int32_t> &cands, const graph :: VerySimpleGraphInterface * vsg, const int32_t ) {
+	assert(clique.size() == 1);
 	/* currently all the cands values are zero. We gotta populate them correctly
 	 * before getting into the clique-finding proper
 	 */
@@ -140,8 +149,8 @@ static void readyToTryOneNode(vector<int32_t> &, const set<int32_t> &cands, cons
 				, cands.begin(), cands.end()
 				, back_inserter(neighs_in_cand)
 				);
-		cand_internal_degrees[*cand, neighs_in_cand.size()];
-		PP2(*cand, neighs_in_cand.size());
+		cand_internal_degrees.insert(make_pair(*cand, neighs_in_cand.size()));
 	}
 	assert(cand_internal_degrees.size() == cands.size());
+	PP2(clique.front(), cand_internal_degrees.size());
 }
