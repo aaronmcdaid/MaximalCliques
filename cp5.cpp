@@ -10,6 +10,7 @@
 #include <tr1/unordered_set>
 #include <map>
 #include <stack>
+#include <bitset>
 
 #include <algorithm>
 #include <tr1/functional>
@@ -208,6 +209,7 @@ int main(int argc, char **argv) {
 	do_clique_percolation_variant_5b(min_k, max_clique_size, max_k_to_percolate, the_cliques, output_dir_name, network.get());
 }
 
+#define BLOOM_BITS 10000000000 /// 1.25 GB
 class bloom { // http://en.wikipedia.org/wiki/Bloom_filter
 	vector<bool> data;
 public: // make private
@@ -239,7 +241,7 @@ public:
 		}
 	}
 };
-const int64_t bloom :: l = 10000000000; /// 1.25 GB
+const int64_t bloom :: l = BLOOM_BITS;
 // const int64_t bloom :: l = 40000000000; // 5 GB
 class intersecting_clique_finder { // based on a tree of all cliques, using a bloom filter to cut branch from the search tree
 	bloom bl;
