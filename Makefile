@@ -36,6 +36,7 @@ CXXFLAGS= ${BITS}      ${CFLAGS} # -DNDEBUG
 
 justTheCliques: justTheCliques.o cliques.o graph/weights.o graph/loading.o graph/network.o graph/saving.o graph/graph.o graph/bloom.o graph/stats.o cmdline.o
 cp5:            cp5.o comments.o cliques.o graph/weights.o graph/loading.o graph/network.o graph/saving.o graph/graph.o graph/bloom.o graph/stats.o cmdline-cp5.o clustering/components.o
+mscp:            mscp.o comments.o      graph/weights.o graph/loading.o graph/network.o graph/saving.o graph/graph.o graph/bloom.o graph/stats.o cmdline-mscp.o
 
 
 
@@ -45,11 +46,11 @@ cmdline.c.FORCE:
 cmdline.o: cmdline.c
 	gcc -Wall cmdline.c -o cmdline.o -c
 
-cmdline-cp5.c.FORCE:      
-	# remake cmdline-cp5.c . But it's OK unless you change the .ggo file. You'll need gengetopt(1) to be able to run this.
-	gengetopt  --unamed-opts -F cmdline-cp5 < cmdline-cp5.ggo
-cmdline-cp5.o: cmdline-cp5.c
-	gcc -Wall cmdline-cp5.c -o cmdline-cp5.o -c
+cmdline-%.c.FORCE:
+	# remake cmdline-%.c . But it's OK unless you change the .ggo file. You'll need gengetopt(1) to be able to run this.
+	gengetopt  --unamed-opts -F cmdline-$* < cmdline-$*.ggo
+cmdline-%.o: cmdline-%.c
+	gcc -Wall cmdline-$*.c -o cmdline-$*.o -c
 
 comments.o: comments.cc.FORCE
 	g++ -c comments.cc -o comments.o
