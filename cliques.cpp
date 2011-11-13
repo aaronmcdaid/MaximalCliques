@@ -214,9 +214,9 @@ void cliquesToStdout(const graph :: NetworkInterfaceConvertedToString * net, uns
 
 }
 
-struct CliquesToStdoutFunctor : public CliqueReceiver {
+struct CliquesToSortedVectorFunctor : public CliqueReceiver {
 	std :: vector< std :: vector<int32_t> > & output_vector;
-	CliquesToStdoutFunctor(std :: vector< std :: vector<int32_t> > & _output_vector) : output_vector(_output_vector) {}
+	CliquesToSortedVectorFunctor(std :: vector< std :: vector<int32_t> > & _output_vector) : output_vector(_output_vector) {}
 	virtual void receive_unsorted_clique (vector<int32_t> new_clique) {
 		sort(new_clique.begin(), new_clique.end());
 		this->output_vector.push_back(new_clique);
@@ -224,7 +224,7 @@ struct CliquesToStdoutFunctor : public CliqueReceiver {
 };
 void cliquesToVector          (const graph :: NetworkInterfaceConvertedToString * net, unsigned int minimumSize, std :: vector< std :: vector<int32_t> > & output_vector ) {
 	assert(minimumSize >= 3);
-	CliquesToStdoutFunctor send_cliques_here( output_vector );
+	CliquesToSortedVectorFunctor send_cliques_here( output_vector );
 	findCliques(net->get_plain_graph(), & send_cliques_here, minimumSize, false);
 }
 
