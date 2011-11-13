@@ -9,6 +9,7 @@
 #include <vector>
 #include <tr1/unordered_set>
 #include <map>
+#include <set>
 #include <stack>
 #include <bitset>
 
@@ -852,12 +853,15 @@ static void write_all_communities_for_this_k(const char * output_dir_name
 		) {
 			const int32_t C = the_cliques.size();
 			map<int32_t, tr1 :: unordered_set<int32_t> > node_ids_in_each_community;
+			map<int32_t, tr1 :: unordered_set<int32_t> > clique_ids_in_each_community;
 			{
 				for(int32_t f = 0; f < (int32_t) found_communities.size(); f++) { // communities
 					const int32_t found_community_component_id = found_communities.at(f);
 					node_ids_in_each_community[found_community_component_id];
+					clique_ids_in_each_community[found_community_component_id];
 				}
 				assert(found_communities.size() == node_ids_in_each_community.size());
+				assert(found_communities.size() == clique_ids_in_each_community.size());
 				const vector<int32_t> & com = current_percolation_level.get_com();
 				assert(com.size() == size_t(C));
 				for (int32_t c=0; c<C; c++) {
@@ -872,6 +876,7 @@ static void write_all_communities_for_this_k(const char * output_dir_name
 						for(int n=0; n<size_of_clique; n++) {
 							node_ids_in_this_community.insert(the_clique.at(n));
 						}
+						clique_ids_in_each_community.at(comp_id_of_clique).insert(c);
 					} else {
 						assert(size_of_clique < k);
 					}
@@ -889,10 +894,10 @@ static void write_all_communities_for_this_k(const char * output_dir_name
 	i != node_ids_in_each_community.end();
 	++i
 				)  { // communities
-				const tr1 :: unordered_set<int32_t> &node_ids_in_this_community = i->second;
+				const set<int32_t> node_ids_in_this_community_sorted(i->second.begin(), i->second.end());
 				bool first_node_on_this_line = true;
-				for(std :: tr1 :: unordered_set<int32_t> :: const_iterator it = node_ids_in_this_community.begin()
-						; it != node_ids_in_this_community.end()
+				for(std :: set<int32_t> :: const_iterator it = node_ids_in_this_community_sorted.begin()
+						; it != node_ids_in_this_community_sorted.end()
 						; ++it ) {
 					const int32_t node_id = *it;
 					const std :: string node_name = network->node_name_as_string(node_id);
@@ -904,6 +909,24 @@ static void write_all_communities_for_this_k(const char * output_dir_name
 				write_nodes_here << endl;
 			} // communities
 			write_nodes_here.close();
+
+			{	// detail the cliques in each comm
+				ostringstream output_clique_file_name;
+				output_clique_file_name << output_dir_name << "/" << "percolated_cliques" << k;
+				ofstream write_cliques_here(output_clique_file_name.str().c_str());
+				int consecutive_comm_id = 0; // I don't think there is any guarantee that the clique_ids_in_each_community are consecutively numbered from zero, hence I'll count again.
+				For(comm_of_cliques, clique_ids_in_each_community) {
+					write_cliques_here << "Community " << consecutive_comm_id++ << " has " << comm_of_cliques->second.size() << " cliques." << endl;
+					For(one_clique_id, comm_of_cliques->second) {
+						const clique & the_clique_sorted = the_cliques.at(*one_clique_id);
+						For(node_id, the_clique_sorted) {
+							write_cliques_here << ' ' << network->node_name_as_string(*node_id);
+						}
+						write_cliques_here << endl;
+					}
+				}
+				write_cliques_here.close();
+			}
 }
 
 static void source_components_for_the_next_level ( // maybe this should return new_percolation_level ? via auto_ptr ?
