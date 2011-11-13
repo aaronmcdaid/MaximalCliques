@@ -168,8 +168,10 @@ static void find_cliques(vector<int32_t> &clique
 		return;
 	}
 	assert(clique.size() < (size_t)k);
-	if(clique.size() + cands.size() < (size_t)k) // to few candidates left
+	if(clique.size() + cands.size() < (size_t)k) // too few candidates left
 		return;
+
+		// for each cand, count how many connecconnec
 
 	while(! cands.empty()) {
 		const int32_t arbitrary_next_node_to_eject = cands.back();
