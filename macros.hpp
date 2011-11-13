@@ -4,4 +4,4 @@
 #define PP3(x,y,z)             std :: cout << #x << ',' << #y << ',' << #z                              << ":\t" << (x) << " , " << (y) << " , " << (z) << std :: endl
 #define PP4(x,y,z,w)           std :: cout << #x << ',' << #y << ',' << #z << ',' << #w                 << ":\t" << (x) << " , " << (y) << " , " << (z) << " , " << w << std :: endl
 #define unless(x) if(!(x))
-#define For(id, container) for( typeof(container.begin()) id = container.begin(); id != container.end(); id++)
+#define For(id, container) for( typeof((container).begin()) id = (container).begin(); id != (container).end(); id++)
