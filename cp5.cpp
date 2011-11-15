@@ -174,8 +174,14 @@ int main(int argc, char **argv) {
 
 	int32_t maxDegree = graph :: stats :: get_max_degree(network->get_plain_graph());
 
+	double elapsed_seconds = double(clock()) / CLOCKS_PER_SEC;
 	cerr << "Network loaded"
-	       << " after " << (double(clock()) / CLOCKS_PER_SEC) << " seconds. "
+	       << " after " << elapsed_seconds << " seconds. "
+		<< network.get()->numNodes() << " nodes and " << network.get()->numRels() << " edges."
+		<< " Max degree is " << maxDegree
+	       << endl;
+	cout << "Network loaded"
+	       << " after " << elapsed_seconds << " seconds. "
 		<< network.get()->numNodes() << " nodes and " << network.get()->numRels() << " edges."
 		<< " Max degree is " << maxDegree
 	       << endl;
