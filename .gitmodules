@@ -1,6 +1,6 @@
 [submodule "graph"]
 	path = graph
-	url = /home/aaronmcdaid/Code/MyCode/MyLibraries/graph
+	url = git@github.com:aaronmcdaid/lib_graph.git
 [submodule "misc"]
 	path = misc
 	url = git@github.com:aaronmcdaid/misc.cpp.git
