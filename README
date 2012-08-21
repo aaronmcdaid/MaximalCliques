@@ -1,4 +1,5 @@
 justTheCliques:   Find maximal cliques, via the Bron Kerbosch algorithm, http://en.wikipedia.org/wiki/Bron%E2%80%93Kerbosch_algorithm
+cp5:     Fast clique percolation algorithm, described in http://arxiv.org/abs/1205.0038
 
 == Copyright ==
 
@@ -7,12 +8,24 @@ Licensed under GPL v3. See gpl.txt included with this package.
 
 == Compiling ==
 
-	make clean justTheCliques
+First, to get your hands on the latest code from GitHub.
+In a directory of your choice:
+
+	git clone -o github git@github.com:aaronmcdaid/MaximalCliques.git
+	cd MaximalCliques
+	git submodule init
+	git submodule update
+	make clean justTheCliques cp5
 
 == Usage ==
 
 
-	./justTheCliques your_edge_list.txt        [--stringIDs]    > cliques.txt
+	./justTheCliques your_edge_list.txt                         [--stringIDs]    > cliques.txt
+	./cp5            your_edge_list.txt output_directory        [--stringIDs]
+
+- justTheCliques will output the cliques to standard output, hence you should
+  redirect it with "> cliques.txt" as in this example.
+- cp5 will create its output in a directory of your choice.
 
 or, if you just want cliques with at least 10 nodes in them,
 
