@@ -216,7 +216,8 @@ int main(int argc, char **argv) {
 	do_clique_percolation_variant_5b(min_k, max_clique_size, max_k_to_percolate, the_cliques, output_dir_name, network.get());
 }
 
-#define BLOOM_BITS 40000000000 /// 5.00 GB
+const static size_t BLOOM_BITS = 4000000000UL;  /// 0.50 GB    // for 32-bit
+// const static size_t BLOOM_BITS = 40000000000UL; /// 5.00 GB // for 64-bit
 class bloom { // http://en.wikipedia.org/wiki/Bloom_filter
 	std :: auto_ptr<bitset<BLOOM_BITS> > data;
 public: // make private
