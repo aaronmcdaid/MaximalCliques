@@ -11,10 +11,7 @@ Licensed under GPL v3. See gpl.txt included with this package.
 First, to get your hands on the latest code from GitHub.
 In a directory of your choice:
 
-	git clone -o github git@github.com:aaronmcdaid/MaximalCliques.git
-	cd MaximalCliques
-	git submodule init
-	git submodule update
+	git clone --recursive https://github.com/aaronmcdaid/MaximalCliques.git
 	make clean justTheCliques cp5
 
 == Usage ==
